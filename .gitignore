@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.vite/
+.DS_Store
+*.log
+
+# Claude Code
+.claude/
+.claude.json
+CLAUDE.md
