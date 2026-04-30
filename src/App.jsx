@@ -6,7 +6,6 @@ import { ProjectPanel } from './inputs/ProjectPanel.jsx';
 import { ProductPanel } from './inputs/ProductPanel.jsx';
 import { ControlsPanel } from './inputs/ControlsPanel.jsx';
 import { L90L70InputPanel } from './inputs/L90L70InputPanel.jsx';
-import { BenchmarkModal } from './inputs/BenchmarkModal.jsx';
 import { ABSummary } from './results/ABSummary.jsx';
 import { GWPTab } from './results/GWPTab.jsx';
 import { ControlsTab } from './results/ControlsTab.jsx';
@@ -19,8 +18,12 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('gwp');
   const [controlsEnabled, setControlsEnabled] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
-  const [benchmarkOpen, setBenchmarkOpen] = useState(false);
-  const [benchmarkLabel, setBenchmarkLabel] = useState(null);
+  const [benchmarkId, setBenchmarkId] = useState(null);
+
+  const handleBenchmarkSelect = (b) => {
+    setProdB(p => ({ ...p, W: b.W, FL: b.FL, LMF: b.LMF, LH: b.LH, GWP_CG: b.GWP_CG, GWP_EOL: b.GWP_EOL, C_SI: b.C_SI }));
+    setBenchmarkId(b.id);
+  };
 
   const [proj, setProj] = useState({ ...PROJECT_DEFAULTS });
   const [prodA, setProdA] = useState({ ...PRODUCT_A_DEFAULTS });
@@ -144,10 +147,9 @@ export default function App() {
                     num="B" title="Product B"
                     prod={prodB} setProd={setProdB}
                     result={rB}
-                    isBenchmark={true}
-                    benchmarkLabel={benchmarkLabel}
+                    selectedBenchmark={benchmarkId}
+                    onBenchmarkSelect={handleBenchmarkSelect}
                     onSwitchMode={switchToL90}
-                    onBenchmarkClick={() => setBenchmarkOpen(true)}
                     validation={validation.productB}
                   />
                 </div>
@@ -211,15 +213,6 @@ export default function App() {
       </div>
 
       <InfoModal open={infoOpen} onClose={() => setInfoOpen(false)} />
-      <BenchmarkModal
-        open={benchmarkOpen}
-        onClose={() => setBenchmarkOpen(false)}
-        currentQ={prodB.Q || prodA.Q}
-        onSelect={preset => {
-          setProdB(p => ({ ...p, W: preset.W, FL: preset.FL, LMF: preset.LMF, LH: preset.LH, GWP_CG: preset.GWP_CG, GWP_EOL: preset.GWP_EOL, C_SI: preset.C_SI }));
-          setBenchmarkLabel(preset.label);
-        }}
-      />
     </div>
   );
 }

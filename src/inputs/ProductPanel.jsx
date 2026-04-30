@@ -2,11 +2,11 @@ import { T } from '../design/tokens.js';
 import { Collapse, InfoBox, DerivedStrip } from '../components/atoms.jsx';
 import { fmt } from '../components/format.js';
 import { NF } from './NumberField.jsx';
+import { BENCHMARKS } from './defaults.js';
 
-export const ProductPanel = ({ num, title, prod, setProd, result, isBenchmark, benchmarkLabel, onSwitchMode, validation, onBenchmarkClick }) => {
+export const ProductPanel = ({ num, title, prod, setProd, result, onSwitchMode, validation, selectedBenchmark, onBenchmarkSelect }) => {
   const s = k => v => setProd(p => ({ ...p, [k]: v }));
   const pv = validation || { errors: [], warnings: [] };
-  const benchmarkWarnText = 'These are typical LED benchmark values. All fields are editable — adjust to match a specific product if available.';
 
   const derivedItems = result ? [
     { lbl: 'Efficacy',        val: fmt.lmw(result.EFF) },
@@ -18,13 +18,22 @@ export const ProductPanel = ({ num, title, prod, setProd, result, isBenchmark, b
 
   return (
     <div style={{ padding: 16, background: num === 'B' ? '#FFFDF7' : T.white, height: '100%' }}>
-      <Collapse
-        title={`0${num === 'A' ? 2 : 3} — ${title}`}
-        badge={isBenchmark ? (benchmarkLabel ? `Benchmark: ${benchmarkLabel}` : 'Benchmark: Select') : undefined}
-        badgeAction={isBenchmark ? onBenchmarkClick : undefined}
-        badgeWarn={isBenchmark ? benchmarkWarnText : undefined}
-        defaultOpen={true}
-      >
+      <Collapse title={`0${num === 'A' ? 2 : 3} — ${title}`} defaultOpen={true}>
+        {num === 'B' && (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+            {BENCHMARKS.map(b => (
+              <button key={b.id} onClick={() => onBenchmarkSelect && onBenchmarkSelect(b)} style={{
+                padding: '4px 10px',
+                background: selectedBenchmark === b.id ? T.c800 : T.white,
+                color: selectedBenchmark === b.id ? T.white : T.c400,
+                border: `1px solid ${selectedBenchmark === b.id ? T.c800 : T.c200}`,
+                fontFamily: T.font, fontSize: 8, fontWeight: 500,
+                letterSpacing: '0.1em', textTransform: 'uppercase',
+                cursor: 'pointer',
+              }}>{b.label}</button>
+            ))}
+          </div>
+        )}
         {pv.errors.map((e, i) => <InfoBox key={i} type="error">{e}</InfoBox>)}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 10px' }}>
           <NF label="Wattage" value={prod.W} unit="W" onChange={s('W')} min={0} tipKey="W" />
