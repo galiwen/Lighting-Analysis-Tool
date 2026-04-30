@@ -187,7 +187,7 @@ export const SummaryRow = ({ lbl, a, b, delta, highlight, positive = true, tip }
     <span style={{ fontFamily: T.font, fontSize: 11, textAlign: 'right' }}>{a}</span>
     <span style={{ fontFamily: T.font, fontSize: 11, textAlign: 'right', color: T.amberD }}>{b}</span>
     {delta != null
-      ? <span style={{ fontFamily: T.font, fontSize: 10, textAlign: 'right', color: positive ? T.success : T.error }}>{delta}</span>
+      ? <span style={{ fontFamily: T.font, fontSize: 12, textAlign: 'right', color: positive ? T.success : T.error }}>{delta.startsWith('-') ? '▼' : '▲'} {delta}</span>
       : <span />}
   </div>
 );
