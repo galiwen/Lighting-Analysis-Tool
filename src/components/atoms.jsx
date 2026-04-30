@@ -104,10 +104,10 @@ export const Field = ({ label: lbl, value, unit, fill = false, warn, error: err,
       type={type} value={value} step={step} min={min} max={max}
       onChange={e => onChange && onChange(e.target.value)}
       style={{
-        display: 'block', width: '100%', height: 28,
+        display: 'block', width: '100%', height: 32,
         border: `1px solid ${err ? T.error : warn ? T.warnBd : T.c100}`,
         background: fill ? T.c050 : T.white,
-        fontFamily: T.font, fontSize: 12, fontWeight: 400, color: T.c800,
+        fontFamily: T.font, fontSize: 13, fontWeight: 400, color: T.c800,
         padding: '0 8px', outline: 'none', boxSizing: 'border-box',
       }}
     />
@@ -181,11 +181,11 @@ export const SummaryRow = ({ lbl, a, b, delta, highlight, positive = true, tip }
     padding: '5px 8px', background: highlight ? T.amberL : 'transparent',
     borderBottom: `1px solid ${T.c100}`, alignItems: 'center', gap: 4,
   }}>
-    <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: T.font, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.c400 }}>
+    <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: T.font, fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.c400 }}>
       {lbl}{tip && <Tip text={tip} />}
     </span>
-    <span style={{ fontFamily: T.font, fontSize: 11, textAlign: 'right' }}>{a}</span>
-    <span style={{ fontFamily: T.font, fontSize: 11, textAlign: 'right', color: T.amberD }}>{b}</span>
+    <span style={{ fontFamily: T.font, fontSize: 13, textAlign: 'right' }}>{a}</span>
+    <span style={{ fontFamily: T.font, fontSize: 13, textAlign: 'right', color: T.amberD }}>{b}</span>
     {delta != null
       ? <span style={{ fontFamily: T.font, fontSize: 12, textAlign: 'right', color: positive ? T.success : T.error }}>{delta.startsWith('-') ? '▼' : '▲'} {delta}</span>
       : <span />}
@@ -194,8 +194,8 @@ export const SummaryRow = ({ lbl, a, b, delta, highlight, positive = true, tip }
 
 export const StatBox = ({ lbl, val, sub, accent = false }) => (
   <div style={{ padding: '10px 14px', border: `1px solid ${accent ? T.amber : T.c100}`, background: accent ? T.amberL : T.white, flex: 1 }}>
-    <div style={{ fontFamily: T.font, fontWeight: 500, fontSize: 8, letterSpacing: '0.12em', textTransform: 'uppercase', color: accent ? T.amberD : T.c300, marginBottom: 4 }}>{lbl}</div>
-    <div style={{ fontFamily: T.font, fontSize: 18, fontWeight: 300, color: accent ? T.amberD : T.c800 }}>{val}</div>
+    <div style={{ fontFamily: T.font, fontWeight: 500, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: accent ? T.amberD : T.c300, marginBottom: 4 }}>{lbl}</div>
+    <div style={{ fontFamily: T.font, fontSize: 22, fontWeight: 300, color: accent ? T.amberD : T.c800 }}>{val}</div>
     {sub && <div style={{ fontFamily: T.font, fontWeight: 500, fontSize: 8, letterSpacing: '0.08em', color: T.c300, marginTop: 3 }}>{sub}</div>}
   </div>
 );
