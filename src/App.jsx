@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { T } from './design/tokens.js';
 import { runProductAnalysis, calculateComparisonNPV, validateInputs } from './calc/engine.js';
 import { PROJECT_DEFAULTS, PRODUCT_A_DEFAULTS, PRODUCT_B_DEFAULTS, CTRL_DEFAULTS } from './inputs/defaults.js';
@@ -18,8 +18,6 @@ export default function App() {
   const [mode, setMode] = useState('ab');
   const [activeTab, setActiveTab] = useState('gwp');
   const [controlsEnabled, setControlsEnabled] = useState(false);
-  const [results, setResults] = useState(null);
-  const [calcErrors, setCalcErrors] = useState([]);
   const [infoOpen, setInfoOpen] = useState(false);
   const [benchmarkOpen, setBenchmarkOpen] = useState(false);
   const [benchmarkLabel, setBenchmarkLabel] = useState(null);
@@ -42,8 +40,8 @@ export default function App() {
     || validation.productA.errors.length > 0
     || validation.productB.errors.length > 0;
 
-  const calculate = useCallback(() => {
-    setCalcErrors([]);
+  const computation = useMemo(() => {
+    if (hasErrors) return { results: null, error: null };
     try {
       if (mode === 'ab') {
         const rA = runProductAnalysis(proj, prodA, controlsEnabled, ctrl);
@@ -54,7 +52,7 @@ export default function App() {
           { C_initial: rB.C_initial, E_base: rB.E_base, PV_replace: rB.PV_replace },
           proj.d, proj.PL, proj.ER, proj.i
         );
-        setResults({ mode: 'ab', rA, rB, npv });
+        return { results: { mode: 'ab', rA, rB, npv }, error: null };
       } else {
         const prod90 = { ...lum, LMF: l90.LMF, LH: l90.LH };
         const prod70 = { ...lum, LMF: l70.LMF, LH: l70.LH };
@@ -67,14 +65,17 @@ export default function App() {
           { C_initial: r70.C_initial, E_base: r70.E_base, PV_replace: r70.PV_replace },
           proj.d, proj.PL, proj.ER, proj.i
         );
-        setResults({ mode: 'l90l70', r90, r70, npv });
+        return { results: { mode: 'l90l70', r90, r70, npv }, error: null };
       }
     } catch (e) {
-      setCalcErrors([e.message || 'Calculation error — check inputs']);
+      return { results: null, error: e.message || 'Calculation error — check inputs' };
     }
-  }, [mode, proj, prodA, prodB, ctrl, lum, l90, l70, controlsEnabled]);
+  }, [mode, proj, prodA, prodB, ctrl, lum, l90, l70, controlsEnabled, hasErrors]);
 
-  const switchToL90 = () => { setMode('l90l70'); setResults(null); };
+  const results = computation.results;
+  const calcError = computation.error;
+
+  const switchToL90 = () => { setMode('l90l70'); };
 
   const abTabs = [
     { id: 'gwp',       label: '1. GWP / Emissions' },
@@ -110,7 +111,7 @@ export default function App() {
 
         <div style={{ display: 'flex', alignItems: 'stretch', paddingLeft: 20, gap: 0 }}>
           {[['ab', 'Product A vs B'], ['l90l70', 'L90 vs L70']].map(([id, lbl]) => (
-            <button key={id} onClick={() => { setMode(id); setResults(null); }} style={{
+            <button key={id} onClick={() => setMode(id)} style={{
               padding: '8px 20px', background: 'none', border: 'none',
               borderBottom: `2px solid ${mode === id ? T.amber : 'transparent'}`,
               fontFamily: T.font, fontWeight: 500, fontSize: 10,
@@ -170,25 +171,14 @@ export default function App() {
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '10px 16px', background: T.white, border: `1px solid ${T.c100}` }}>
-          <button
-            onClick={calculate}
-            disabled={hasErrors}
-            style={{
-              padding: '9px 24px',
-              background: hasErrors ? T.c300 : T.c800,
-              color: T.white, border: 'none',
-              fontFamily: T.font, fontWeight: 500, fontSize: 9,
-              letterSpacing: '0.16em', textTransform: 'uppercase',
-              cursor: hasErrors ? 'not-allowed' : 'pointer',
-            }}
-          >
-            {mode === 'ab' ? 'Calculate Analysis' : 'Compare L90 vs L70'} ▶
-          </button>
-          {hasErrors && <span style={{ fontFamily: T.font, fontSize: 9, color: T.error, letterSpacing: '0.06em' }}>Fix input errors before calculating</span>}
-          {calcErrors.map((e, i) => <span key={i} style={{ fontFamily: T.font, fontSize: 9, color: T.error }}>{e}</span>)}
-          {!hasErrors && !results && <span style={{ fontFamily: T.font, fontSize: 9, color: T.c300, letterSpacing: '0.06em' }}>All calculations run client-side · Currency: AUD</span>}
-          {results && <span style={{ fontFamily: T.font, fontSize: 9, color: T.success, letterSpacing: '0.06em' }}>✓ Analysis complete</span>}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '6px 16px', background: T.white, border: `1px solid ${T.c100}` }}>
+          {hasErrors
+            ? <span style={{ fontFamily: T.font, fontSize: 9, color: T.error, letterSpacing: '0.06em' }}>⚠ Fix input errors to update analysis</span>
+            : calcError
+              ? <span style={{ fontFamily: T.font, fontSize: 9, color: T.error, letterSpacing: '0.06em' }}>{calcError}</span>
+              : results
+                ? <span style={{ fontFamily: T.font, fontSize: 9, color: T.c300, letterSpacing: '0.06em' }}>Analysis complete — Currency: AUD</span>
+                : <span style={{ fontFamily: T.font, fontSize: 9, color: T.c300, letterSpacing: '0.06em' }}>Currency: AUD</span>}
         </div>
 
         {mode === 'ab' && (
