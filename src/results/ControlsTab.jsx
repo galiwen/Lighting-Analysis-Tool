@@ -3,18 +3,7 @@ import { StatBox } from '../components/atoms.jsx';
 import { fmt } from '../components/format.js';
 import { EmptyState } from './shared.jsx';
 
-export const ControlsTab = ({ rA, rB, proj, ctrl, controlsEnabled, onToggleControls }) => {
-  if (!controlsEnabled) return (
-    <div style={{ padding: 32, textAlign: 'center' }}>
-      <div style={{ fontFamily: T.font, fontWeight: 500, fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.c300, marginBottom: 12 }}>Control System Module is off</div>
-      <div style={{ fontFamily: T.font, fontSize: 12, color: T.c400, fontWeight: 300, marginBottom: 20, maxWidth: 360, margin: '0 auto 20px' }}>
-        Enable the controls module beneath the input fields to model occupancy sensing, daylight harvesting, and maintenance dimming across three scenarios.
-      </div>
-      <button onClick={onToggleControls} style={{ padding: '9px 20px', background: T.c800, color: T.white, border: 'none', fontFamily: T.font, fontWeight: 500, fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', cursor: 'pointer' }}>
-        Enable Controls
-      </button>
-    </div>
-  );
+export const ControlsTab = ({ rA, rB, proj, ctrl }) => {
   if (!rA?.ctrlResults) return <EmptyState />;
 
   const cr = rA.ctrlResults;

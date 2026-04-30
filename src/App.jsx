@@ -15,7 +15,6 @@ import { InfoModal } from './modals/InfoModal.jsx';
 
 export default function App() {
   const [mode, setMode] = useState('ab');
-  const [activeTab, setActiveTab] = useState('gwp');
   const [controlsEnabled, setControlsEnabled] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
   const [benchmarkId, setBenchmarkId] = useState(null);
@@ -80,12 +79,6 @@ export default function App() {
 
   const switchToL90 = () => { setMode('l90l70'); };
 
-  const abTabs = [
-    { id: 'gwp',       label: '1. GWP / Emissions' },
-    { id: 'controls',  label: '2. Controls' },
-    { id: 'financial', label: '3. Financial' },
-  ];
-
   const rA = results?.mode === 'ab' ? results.rA : null;
   const rB = results?.mode === 'ab' ? results.rB : null;
   const r90 = results?.mode === 'l90l70' ? results.r90 : null;
@@ -137,7 +130,6 @@ export default function App() {
                     num="A" title="Product A"
                     prod={prodA} setProd={setProdA}
                     result={rA}
-                    isBenchmark={false}
                     onSwitchMode={switchToL90}
                     validation={validation.productA}
                   />
@@ -182,26 +174,25 @@ export default function App() {
         </div>
 
         {mode === 'ab' && (
-          <div style={{ background: T.white, border: `1px solid ${T.c100}`, display: 'grid', gridTemplateColumns: '460px 1fr', minHeight: 300 }}>
-            <div style={{ borderRight: `1px solid ${T.c100}`, padding: 20, overflowY: 'auto' }}>
-              <ABSummary rA={rA} rB={rB} proj={proj} npv={results?.npv} />
+          <div style={{ background: T.white, border: `1px solid ${T.c100}`, padding: 20 }}>
+            <ABSummary rA={rA} rB={rB} proj={proj} npv={results?.npv} />
+
+            <div style={{ borderTop: `1px solid ${T.c100}`, marginTop: 4, paddingTop: 20 }}>
+              <div style={{ fontFamily: T.font, fontWeight: 500, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.c800, marginBottom: 12 }}>Carbon (GWP)</div>
+              <GWPTab rA={rA} rB={rB} proj={proj} />
             </div>
-            <div style={{ padding: 20, overflowY: 'auto' }}>
-              <div style={{ display: 'flex', gap: 0, borderBottom: `1px solid ${T.c100}`, marginBottom: 20 }}>
-                {abTabs.map(t => (
-                  <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
-                    padding: '8px 16px', background: 'none', border: 'none',
-                    borderBottom: `2px solid ${activeTab === t.id ? T.c800 : 'transparent'}`,
-                    fontFamily: T.font, fontWeight: 500, fontSize: 9,
-                    letterSpacing: '0.12em', textTransform: 'uppercase',
-                    color: activeTab === t.id ? T.c800 : T.c300, cursor: 'pointer',
-                  }}>{t.label}</button>
-                ))}
+
+            <div style={{ borderTop: `1px solid ${T.c100}`, marginTop: 20, paddingTop: 20 }}>
+              <div style={{ fontFamily: T.font, fontWeight: 500, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.c800, marginBottom: 12 }}>Financial</div>
+              <FinancialTab rA={rA} rB={rB} proj={proj} npv={results?.npv} />
+            </div>
+
+            {controlsEnabled && rA?.ctrlResults && rB?.ctrlResults && (
+              <div style={{ borderTop: `1px solid ${T.c100}`, marginTop: 20, paddingTop: 20 }}>
+                <div style={{ fontFamily: T.font, fontWeight: 500, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.c800, marginBottom: 12 }}>Controls</div>
+                <ControlsTab rA={rA} rB={rB} proj={proj} ctrl={ctrl} />
               </div>
-              {activeTab === 'gwp'      && <GWPTab rA={rA} rB={rB} proj={proj} />}
-              {activeTab === 'controls' && <ControlsTab rA={rA} rB={rB} proj={proj} ctrl={ctrl} controlsEnabled={controlsEnabled} onToggleControls={() => setControlsEnabled(true)} />}
-              {activeTab === 'financial'&& <FinancialTab rA={rA} rB={rB} proj={proj} npv={results?.npv} />}
-            </div>
+            )}
           </div>
         )}
 
