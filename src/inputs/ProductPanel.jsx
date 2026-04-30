@@ -19,6 +19,11 @@ export const ProductPanel = ({ num, title, prod, setProd, result, onSwitchMode, 
   return (
     <div style={{ padding: 16, background: num === 'B' ? '#FFFDF7' : T.white, height: '100%' }}>
       <Collapse title={`0${num === 'A' ? 2 : 3} — ${title}`} defaultOpen={true}>
+        {result && (
+          <div style={{ marginBottom: 12 }}>
+            <DerivedStrip items={derivedItems} dark={num === 'A'} />
+          </div>
+        )}
         {num === 'B' && (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
             {BENCHMARKS.map(b => (
@@ -52,7 +57,6 @@ export const ProductPanel = ({ num, title, prod, setProd, result, onSwitchMode, 
           <NF label="GWP End of Life" value={prod.GWP_EOL} unit="kgCO₂e/ea" onChange={s('GWP_EOL')} min={0} step={0.1} tipKey="GWP_EOL" />
         </div>
       </Collapse>
-      {result && <DerivedStrip items={derivedItems} dark={num === 'A'} />}
     </div>
   );
 };
