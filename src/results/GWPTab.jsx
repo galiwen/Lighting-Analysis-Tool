@@ -82,7 +82,7 @@ export const GWPTab = ({ rA, rB, proj }) => {
 
       <Rule my={16} />
       <SectionHead>Cumulative Emissions — {proj.PL}-Year Profile</SectionHead>
-      <LineChart series={chartSeries} height={130} />
+      <LineChart series={chartSeries} height={200} />
       <div style={{ fontFamily: T.font, fontSize: 8, color: T.c300, marginTop: 6, letterSpacing: '0.04em', lineHeight: 1.5 }}>
         Operational emissions adjusted year-by-year for grid decarbonisation (GD {fmt.pct(proj.GD * 100, 0)} over {proj.GDT} yr).
         Embodied carbon allocated at installation and replacement events.

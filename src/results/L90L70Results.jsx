@@ -56,8 +56,8 @@ export const L90L70Results = ({ r90, r70, proj, npv }) => {
         <span />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-        <div><SectionHead>Cumulative Emissions</SectionHead><LineChart series={emissChart} height={120} /></div>
-        <div><SectionHead>Cumulative Cost (AUD)</SectionHead><LineChart series={costChart} height={120} /></div>
+        <div><SectionHead>Cumulative Emissions</SectionHead><LineChart series={emissChart} height={180} /></div>
+        <div><SectionHead>Cumulative Cost (AUD)</SectionHead><LineChart series={costChart} height={180} /></div>
       </div>
     </div>
   );

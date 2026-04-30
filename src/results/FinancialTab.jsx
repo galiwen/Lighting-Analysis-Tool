@@ -45,7 +45,7 @@ export const FinancialTab = ({ rA, rB, proj, npv }) => {
         <span />
       </div>
       <SectionHead>Cumulative Cost — {PL}-Year Profile (Present Value)</SectionHead>
-      <LineChart series={chartSeries} height={130} />
+      <LineChart series={chartSeries} height={200} />
       <div style={{ fontFamily: T.font, fontSize: 8, color: T.c300, marginTop: 6, letterSpacing: '0.04em', lineHeight: 1.5 }}>
         Costs in present value terms, discounted at {fmt.pct(proj.d * 100, 1)}. Step changes in the chart indicate scheduled replacement events.
       </div>
