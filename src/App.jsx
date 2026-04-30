@@ -127,10 +127,8 @@ export default function App() {
         <div style={{ background: T.white, border: `1px solid ${T.c100}` }}>
           {mode === 'ab' ? (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr' }}>
-                <div style={{ borderRight: `1px solid ${T.c100}` }}>
-                  <ProjectPanel proj={proj} setProj={setProj} validation={validation} />
-                </div>
+              <ProjectPanel proj={proj} setProj={setProj} validation={validation} />
+              <div style={{ borderTop: `1px solid ${T.c100}`, display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
                 <div style={{ borderRight: `1px solid ${T.c100}` }}>
                   <ProductPanel
                     num="A" title="Product A"
