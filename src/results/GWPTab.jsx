@@ -1,6 +1,6 @@
 import { T } from '../design/tokens.js';
 import { Rule } from '../components/atoms.jsx';
-import { PieChart, LineChart } from '../components/charts.jsx';
+import { StackedBarComparison, LineChart } from '../components/charts.jsx';
 import { fmt } from '../components/format.js';
 import { MetaCell, SectionHead, EmptyState } from './shared.jsx';
 
@@ -12,11 +12,6 @@ export const GWPTab = ({ rA, rB, proj }) => {
     { label: 'Product B', color: T.amber, data: rB.emissionsProfile.map(p => p.cumulativeEmissions) },
   ];
 
-  const products = [
-    { label: 'Product A', g: rA.gwpBase, embColor: T.c800, opColor: T.c500 },
-    { label: 'Product B', g: rB.gwpBase, embColor: T.amber, opColor: T.amberD },
-  ];
-
   const ctrlScenarios = rA.ctrlResults && rB?.ctrlResults ? [
     { label: 'Base Case',            gA: rA.gwpBase,                  gB: rB.gwpBase },
     { label: '+ Controls',           gA: rA.ctrlResults.gwpCtrl,      gB: rB.ctrlResults.gwpCtrl },
@@ -25,32 +20,35 @@ export const GWPTab = ({ rA, rB, proj }) => {
 
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 20 }}>
-        {products.map(({ label, g, embColor, opColor }) => (
-          <div key={label}>
-            <SectionHead>{label} — Carbon Breakdown</SectionHead>
-            <PieChart
-              size={130}
-              centerLabel={`${(g.total / 1000).toFixed(0)}t`}
-              slices={[
-                { label: 'Embodied', value: g.embodied, color: embColor },
-                { label: 'Operational', value: g.operational, color: opColor },
-              ]}
-            />
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 12 }}>
-              <MetaCell label="Embodied" value={fmt.co2(g.embodied)} sub={`${g.embodiedPercent.toFixed(0)}% of total`} />
-              <MetaCell label="Operational" value={fmt.co2(g.operational)} sub={`${g.operationalPercent.toFixed(0)}% of total`} />
-            </div>
-            <div style={{ marginTop: 6 }}>
-              <MetaCell label="Total GWP" value={fmt.co2(g.total)} emphasis />
-            </div>
-          </div>
-        ))}
+      <SectionHead>Carbon Breakdown</SectionHead>
+      <StackedBarComparison
+        bars={[
+          { label: 'Product A', segments: [
+            { label: 'Embodied', value: rA.gwpBase.embodied, color: T.c800 },
+            { label: 'Operational', value: rA.gwpBase.operational, color: T.c500 },
+          ], total: rA.gwpBase.total },
+          { label: 'Product B', segments: [
+            { label: 'Embodied', value: rB.gwpBase.embodied, color: T.amber },
+            { label: 'Operational', value: rB.gwpBase.operational, color: T.amberD },
+          ], total: rB.gwpBase.total },
+        ]}
+        formatValue={v => fmt.co2(v)}
+      />
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 24px', marginTop: 20 }}>
+        <div style={{ fontFamily: T.font, fontWeight: 500, fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.c800 }}>Product A</div>
+        <div style={{ fontFamily: T.font, fontWeight: 500, fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.amberD }}>Product B</div>
+        <MetaCell label="Embodied" value={fmt.co2(rA.gwpBase.embodied)} sub={`${rA.gwpBase.embodiedPercent.toFixed(0)}% of total`} />
+        <MetaCell label="Embodied" value={fmt.co2(rB.gwpBase.embodied)} sub={`${rB.gwpBase.embodiedPercent.toFixed(0)}% of total`} />
+        <MetaCell label="Operational" value={fmt.co2(rA.gwpBase.operational)} sub={`${rA.gwpBase.operationalPercent.toFixed(0)}% of total`} />
+        <MetaCell label="Operational" value={fmt.co2(rB.gwpBase.operational)} sub={`${rB.gwpBase.operationalPercent.toFixed(0)}% of total`} />
+        <MetaCell label="Total GWP" value={fmt.co2(rA.gwpBase.total)} emphasis />
+        <MetaCell label="Total GWP" value={fmt.co2(rB.gwpBase.total)} emphasis />
       </div>
 
       {ctrlScenarios && (
         <>
-          <Rule />
+          <Rule my={16} />
           <SectionHead>Control Scenario GWP</SectionHead>
           <div style={{ overflowX: 'auto', marginBottom: 16 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: T.font }}>
@@ -82,7 +80,7 @@ export const GWPTab = ({ rA, rB, proj }) => {
         </>
       )}
 
-      <Rule />
+      <Rule my={16} />
       <SectionHead>Cumulative Emissions — {proj.PL}-Year Profile</SectionHead>
       <LineChart series={chartSeries} height={130} />
       <div style={{ fontFamily: T.font, fontSize: 8, color: T.c300, marginTop: 6, letterSpacing: '0.04em', lineHeight: 1.5 }}>

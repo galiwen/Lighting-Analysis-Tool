@@ -107,3 +107,43 @@ export const LineChart = ({ series, height = 120 }) => {
     </div>
   );
 };
+
+export const StackedBarComparison = ({ bars, formatValue }) => {
+  if (!bars || bars.length === 0) return null;
+  const maxTotal = Math.max(...bars.map(b => b.total)) || 1;
+
+  return (
+    <div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {bars.map(bar => {
+          const widthPct = (bar.total / maxTotal) * 100;
+          return (
+            <div key={bar.label} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ width: 80, flexShrink: 0, fontFamily: T.font, fontSize: 9, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.c400 }}>{bar.label}</span>
+              <div style={{ flex: 1, height: 28, background: T.c050 }}>
+                <div style={{ display: 'flex', height: '100%', width: `${widthPct}%` }}>
+                  {bar.segments.map(seg => (
+                    <div key={seg.label} style={{ flex: seg.value, background: seg.color }} />
+                  ))}
+                </div>
+              </div>
+              <span style={{ width: 120, flexShrink: 0, fontFamily: T.font, fontSize: 11, color: T.c800, textAlign: 'right' }}>{formatValue(bar.total)}</span>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 10, paddingLeft: 92 }}>
+        {bars.flatMap(bar =>
+          bar.segments.map(seg => (
+            <div key={`${bar.label}-${seg.label}`} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ width: 10, height: 10, background: seg.color, flexShrink: 0 }} />
+              <span style={{ fontFamily: T.font, fontSize: 8, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.c400 }}>
+                {seg.label} {bar.label.replace(/^Product\s+/, '')}
+              </span>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
