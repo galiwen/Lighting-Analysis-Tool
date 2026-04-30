@@ -13,11 +13,17 @@ export function calculateGridFactor(year, GF_0, GD, GDT) {
   return Math.max(GF_floor, 0);
 }
 
+// Average drive level over luminaire life (midpoint between 100% and LMF).
+// See Section 2.4 re: linearity assumption.
+function calculateDimmingFactor(LMF) {
+  return 1 - (1 - LMF) / 2;
+}
+
 // ── 3.3 Lifetime ───────────────────────────────────────────────────
 function calculateLifetimes(LH, OH, CSC, LMF) {
   const L_base = LH / OH;
   const L_control = L_base / CSC;
-  const dimming_factor = 1 - (1 - LMF) / 2;
+  const dimming_factor = calculateDimmingFactor(LMF);
   const L_control_maint = L_control / dimming_factor;
   return { L_base, L_control, L_control_maint, dimming_factor };
 }
@@ -33,7 +39,7 @@ export function calculateReplacements(projectLife, luminaireLife) {
 function calculateEnergy(W, Q_adj, OH, CSC, LMF) {
   const E_base = (W * Q_adj * OH) / 1000;
   const E_control = E_base * CSC;
-  const dimming_factor = 1 - (1 - LMF) / 2;
+  const dimming_factor = calculateDimmingFactor(LMF);
   const E_control_maint = Math.max(0, E_control * dimming_factor);
   return { E_base, E_control, E_control_maint };
 }
@@ -212,6 +218,11 @@ export function runProductAnalysis(proj, prod, controlsEnabled, ctrl) {
     const annual_savings = (E_base - E_control) * ER;
     const simple_payback = annual_savings > 0 ? ACC_total / annual_savings : Infinity;
 
+    const emissCtrl = calculateEmissionsProfile(E_control, PL, GF_0, GD, GDT);
+    const emissCtrlMaint = calculateEmissionsProfile(E_control_maint, PL, GF_0, GD, GDT);
+    const gwpCtrl = calculateTotalGWP(Q_adj, GWP_CG, GWP_EOL, N_replace_ctrl, emissCtrl.totalEmissions);
+    const gwpCtrlMaint = calculateTotalGWP(Q_adj, GWP_CG, GWP_EOL, N_replace_ctrl_maint, emissCtrlMaint.totalEmissions);
+
     ctrlResults = {
       ACC_total, ALP, TLP,
       E_control, E_control_maint,
@@ -219,6 +230,7 @@ export function runProductAnalysis(proj, prod, controlsEnabled, ctrl) {
       N_replace_ctrl, N_replace_ctrl_maint,
       TC_control, TC_control_maint,
       annual_savings, simple_payback,
+      gwpCtrl, gwpCtrlMaint,
     };
   }
 

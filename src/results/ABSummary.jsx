@@ -21,7 +21,8 @@ export const ABSummary = ({ rA, rB, proj, npv }) => {
 
   const rows = [
     { lbl: 'Efficacy', a: fmt.lmw(rA.EFF), b: fmt.lmw(rB.EFF), d: pctDiff(rA.EFF, rB.EFF) },
-    { lbl: 'Adjusted Quantity (Q / LMF)', a: fmt.num(rA.Q_adj, 0), b: fmt.num(rB.Q_adj, 0), d: pctDiff(rA.Q_adj, rB.Q_adj, true) },
+    { lbl: 'Equiv. System Capacity (Q / LMF)', a: fmt.num(rA.Q_adj, 0), b: fmt.num(rB.Q_adj, 0), d: pctDiff(rA.Q_adj, rB.Q_adj, true),
+      tip: 'Total installed capacity needed to maintain design light levels at end of life, expressed as luminaire-equivalents. Accounts for lumen depreciation (LMF). Total system energy scales by this factor regardless of whether over-provision is achieved through additional luminaires or higher-output variants.' },
     { lbl: 'Annual Energy', a: fmt.kwh(rA.E_base), b: fmt.kwh(rB.E_base), d: pctDiff(rA.E_base, rB.E_base, true) },
     { lbl: `Luminaire Lifetime`, a: fmt.yr(rA.L_base), b: fmt.yr(rB.L_base), d: null },
     { lbl: `Replacements (${PL} yr)`, a: `${rA.N_replace}×`, b: `${rB.N_replace}×`, d: null },
@@ -40,7 +41,7 @@ export const ABSummary = ({ rA, rB, proj, npv }) => {
       {rows.map(r => (
         <SummaryRow key={r.lbl} lbl={r.lbl} a={r.a} b={r.b}
           delta={r.d ? r.d.text : null} positive={r.d ? r.d.positive : true}
-          highlight={r.highlight} />
+          highlight={r.highlight} tip={r.tip} />
       ))}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 100px', padding: '6px 8px', background: T.c050, gap: 4, alignItems: 'center' }}>
         <span style={{ fontFamily: T.font, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.c400 }}>NPV of choosing A over B</span>

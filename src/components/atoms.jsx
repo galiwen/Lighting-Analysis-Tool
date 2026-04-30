@@ -161,9 +161,12 @@ export const Toggle = ({ on, onChange, label: lbl }) => (
 
 export const DerivedStrip = ({ items, dark = true }) => (
   <div style={{ background: dark ? T.c800 : T.amber, padding: '6px 10px', display: 'flex', gap: 20, flexWrap: 'wrap', marginTop: 4 }}>
-    {items.map(({ lbl, val, warn: w }) => (
+    {items.map(({ lbl, val, warn: w, tip }) => (
       <div key={lbl}>
-        <div style={{ fontFamily: T.font, fontWeight: 500, fontSize: 8, letterSpacing: '0.12em', textTransform: 'uppercase', color: dark ? T.c300 : T.c700, marginBottom: 2 }}>{lbl}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
+          <span style={{ fontFamily: T.font, fontWeight: 500, fontSize: 8, letterSpacing: '0.12em', textTransform: 'uppercase', color: dark ? T.c300 : T.c700 }}>{lbl}</span>
+          {tip && <Tip text={tip} />}
+        </div>
         <span style={{ fontFamily: T.font, fontSize: 11, color: dark ? T.white : T.c800 }}>
           {val}{w && <span style={{ color: T.warnBd, marginLeft: 4 }}>⚠</span>}
         </span>
@@ -172,13 +175,15 @@ export const DerivedStrip = ({ items, dark = true }) => (
   </div>
 );
 
-export const SummaryRow = ({ lbl, a, b, delta, highlight, positive = true }) => (
+export const SummaryRow = ({ lbl, a, b, delta, highlight, positive = true, tip }) => (
   <div style={{
     display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 100px',
     padding: '5px 8px', background: highlight ? T.amberL : 'transparent',
     borderBottom: `1px solid ${T.c100}`, alignItems: 'center', gap: 4,
   }}>
-    <span style={{ fontFamily: T.font, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.c400 }}>{lbl}</span>
+    <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: T.font, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.c400 }}>
+      {lbl}{tip && <Tip text={tip} />}
+    </span>
     <span style={{ fontFamily: T.font, fontSize: 11, textAlign: 'right' }}>{a}</span>
     <span style={{ fontFamily: T.font, fontSize: 11, textAlign: 'right', color: T.amberD }}>{b}</span>
     {delta != null

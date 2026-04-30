@@ -41,7 +41,7 @@ export const InfoModal = ({ open, onClose }) => (
         <dl style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '6px 16px' }}>
           {[
             ['LMF', 'Luminaire Maintenance Factor — the fraction of initial lumens retained at rated end of life. L90 = 0.90; L70 = 0.70. The installed quantity is always Q/LMF to maintain minimum light levels at end of life.'],
-            ['Q/LMF', 'The adjusted quantity installed. A lower LMF requires more luminaires to compensate for lumen depreciation over time.'],
+            ['Q/LMF', 'The equivalent system capacity. A lower LMF requires more installed capacity (whether via more luminaires or higher-output variants) to maintain design light levels at end of life.'],
             ['GWP', 'Global Warming Potential in kgCO₂e — the standard unit for comparing the climate impact of different greenhouse gases.'],
             ['NPV', 'Net Present Value — the present value of future cash flow differences, discounted at the project cost of capital. Positive NPV means Product A is financially preferable over the project life.'],
             ['PV', 'Present Value — a future cost or saving expressed in today\'s money, discounted at the project discount rate.'],

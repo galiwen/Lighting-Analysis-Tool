@@ -8,7 +8,7 @@ export const L90L70Results = ({ r90, r70, proj, npv }) => {
   const { PL } = proj;
 
   const rows = [
-    ['Adj. Quantity (Q / LMF)', fmt.num(r90.Q_adj, 0), fmt.num(r70.Q_adj, 0), r90.Q_adj < r70.Q_adj],
+    ['Equiv. Capacity (Q / LMF)', fmt.num(r90.Q_adj, 0), fmt.num(r70.Q_adj, 0), r90.Q_adj < r70.Q_adj],
     ['Annual Energy', fmt.kwh(r90.E_base), fmt.kwh(r70.E_base), r90.E_base < r70.E_base],
     ['Luminaire Lifetime', fmt.yr(r90.L_base), fmt.yr(r70.L_base), null],
     [`Replacements (${PL} yr)`, `${r90.N_replace}×`, `${r70.N_replace}×`, null],

@@ -14,6 +14,9 @@
 | 8 | Addition | Year-by-year profile output structure | Supports cumulative charts for cost and emissions |
 | 9 | Structural | Control system analysis made optional | Comparison tool may only need Product A vs B |
 | 10 | Addition | Product A vs Product B comparison framework | Replaces fixed L90/L70 comparison structure |
+| 11 | Structural | Q_adj relabelled as Equivalent System Capacity | Clarifies that Q_adj represents total system capacity, not necessarily physical luminaire count |
+| 12 | Addition | GWP calculated for control scenarios | Controls reduce both operational emissions and embodied carbon via fewer replacements |
+| 13 | Bug fix | Section 4.3 replacement detection aligned with engine | Circular rounding logic could misfire with fractional lifetimes; engine's schedule-based approach is authoritative |
 
 ---
 
@@ -68,7 +71,7 @@
 | Variable | Description | Formula |
 |----------|-------------|---------|
 | **EFF** | Luminaire Efficacy (lm/W) | FL / W |
-| **Q_adj** | Adjusted Quantity | Q / LMF |
+| **Q_adj** | Equivalent System Capacity (luminaire-equivalents) | Q / LMF |
 | **L_base** | Base Lifetime (years) | LH / OH |
 | **E_base** | Annual Energy (kWh) | (W * Q_adj * OH) / 1000 |
 
@@ -101,13 +104,15 @@ The LMF standard choice directly affects two calculations: the adjusted quantity
 
 ### 2.2 Maintenance Factor Impact
 
-The Luminaire Maintenance Factor accounts for LED lumen depreciation over time. To ensure minimum design light levels are maintained at end of life, the initial installation must over-provide by the inverse of LMF:
+The Luminaire Maintenance Factor accounts for LED lumen depreciation over time. To maintain minimum design light levels at end of life, the installation must provide additional luminous capacity in inverse proportion to LMF:
 
 ```
 Q_adj = Q / LMF
 ```
 
-Example: With LMF = 0.9 and Q = 500, the adjusted quantity is 556 (11% more luminaires installed). With LMF = 0.7, the same base quantity requires 714 luminaires (43% more).
+`Q_adj` is the **equivalent system capacity** — the total installed luminous capacity, expressed as a number of luminaires at rated output, required so that the design illuminance is still met after lumen depreciation. In practice this capacity may be achieved through additional luminaires, higher-output variants of the same product, or revised layouts. The key point for this tool is that **total system wattage and energy scale by 1/LMF regardless of how the designer achieves the over-provision**.
+
+Example: With LMF = 0.9 and Q = 500, the equivalent system capacity is 556 luminaire-equivalents (11% over the base quantity). With LMF = 0.7, the same base quantity scales to 714 luminaire-equivalents (43% over).
 
 ### 2.3 Control System Benefits (Optional Module)
 
@@ -126,6 +131,8 @@ The following simplifications are used in this tool. Each is reasonable for comp
 3. **Grid decarbonisation is modelled as linear.** Actual grid decarbonisation may follow an S-curve or step-function pattern depending on policy and infrastructure investment.
 
 4. **Energy consumption is constant across the luminaire's life.** This does not account for driver efficiency degradation or increasing power draw as LEDs age.
+
+5. **Cost is modelled as scaling linearly with equivalent system capacity.** The tool multiplies per-luminaire supply and install cost by Q_adj, which assumes cost is proportional to total installed capacity. In practice, achieving the required over-provision through higher-output variants rather than additional luminaires may result in different per-unit costs. Since both products in a comparison use the same assumption, relative cost comparisons remain valid.
 
 ---
 
@@ -179,6 +186,16 @@ function calculateAverageGridFactor(PL, GF_0, GD, GDT) {
 | 15 | 0.2730 (= GF_0 * 0.7, target reached) |
 | 16+ | 0.2730 (held at floor) |
 
+> **Shared helper used in Sections 3.3 and 3.5:**
+>
+> ```javascript
+> // Average drive level over luminaire life — midpoint between 100% and LMF.
+> // See Section 2.4 re: linearity assumption.
+> const dimming_factor = 1 - (1 - LMF) / 2;
+> ```
+>
+> Defined once and referenced from both lifetime extension (3.3) and energy reduction (3.5) so the two paths cannot drift apart.
+
 ### 3.3 Lifetime Assessment
 
 **Base Lifetime:**
@@ -196,8 +213,7 @@ L_control = L_base / CSC;
 **Lifetime with Control + Maintenance Dimming:**
 
 ```javascript
-// Assumption: average drive level over life = midpoint between 100% and LMF
-// See Section 2.4 for discussion of linearity assumption
+// dimming_factor defined once above — used in both 3.3 and 3.5
 const dimming_factor = 1 - (1 - LMF) / 2;
 L_control_maint = L_control / dimming_factor;
 ```
@@ -249,6 +265,7 @@ const E_base = (W * Q_adj * OH) / 1000;
 const E_control = E_base * CSC;
 
 // With control + maintenance dimming (optional)
+// dimming_factor defined once above — used in both 3.3 and 3.5
 const dimming_factor = 1 - (1 - LMF) / 2;
 const E_control_maint = Math.max(0, E_control * dimming_factor);
 ```
@@ -330,9 +347,12 @@ function calculatePVEnergyCosts(annualEnergy, ER, i, d, PL) {
 
 **Step 3: Present Value of Replacements**
 
+Returns both the running total and the per-replacement schedule. The schedule is consumed by the year-by-year cumulative profile in Section 4.3.
+
 ```javascript
 function calculatePVReplacements(C_initial, luminaireLife, numReplacements, i, d) {
     let pvTotal = 0;
+    const schedule = [];
 
     for (let n = 1; n <= numReplacements; n++) {
         const replacementYear = Math.round(n * luminaireLife);
@@ -340,9 +360,10 @@ function calculatePVReplacements(C_initial, luminaireLife, numReplacements, i, d
         const nominalCost = C_initial * Math.pow(1 + i, replacementYear);
         const presentValue = nominalCost / Math.pow(1 + d, replacementYear);
         pvTotal += presentValue;
+        schedule.push({ n, replacementYear, nominalCost, presentValue });
     }
 
-    return pvTotal;
+    return { pvTotal, schedule };
 }
 ```
 
@@ -473,7 +494,11 @@ function generateComparison(productA, productB) {
 
 When enabled, the control system analysis runs on each product independently, generating the three-scenario breakdown (base, controlled, controlled + dimming) within each product. This can be toggled on or off without affecting the core A vs B comparison.
 
+When controls are enabled, GWP is calculated for all three scenarios using the respective annual energy and replacement counts. The operational component reflects fewer kWh, and the embodied component reflects fewer replacement cycles thanks to the longer effective lifetime under controls and dimming. Engine output: `gwpBase`, `ctrlResults.gwpCtrl`, `ctrlResults.gwpCtrlMaint` — each with the same `embodied`, `operational`, `total`, `embodiedPercent`, `operationalPercent` shape.
+
 ### 4.3 Year-by-Year Profiles for Charting
+
+`product.replaceSchedule` is the `schedule` array returned from `calculatePVReplacements` (Section 3.8, Step 3). Iterating it directly avoids the circular rounding logic used in v1 of this section, which could misfire with fractional lifetimes.
 
 ```javascript
 function generateProfiles(product, PL, GF_0, GD, GDT, ER, i, d) {
@@ -497,11 +522,11 @@ function generateProfiles(product, PL, GF_0, GD, GDT, ER, i, d) {
         cumCost += annualCost / Math.pow(1 + d, y);
 
         // Add replacement cost in the year it occurs
-        const replacementYear = product.L_base > 0 ? Math.round(y / product.L_base) : 0;
-        if (replacementYear > 0 && Math.round(replacementYear * product.L_base) === y) {
-            const replaceCost = product.C_initial * Math.pow(1 + i, y) / Math.pow(1 + d, y);
-            cumCost += replaceCost;
-        }
+        product.replaceSchedule.forEach(r => {
+            if (r.replacementYear === y) {
+                cumCost += r.presentValue;
+            }
+        });
 
         profiles.years.push(y);
         profiles.annualEmissions.push(annualEmissions);

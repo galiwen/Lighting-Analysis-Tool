@@ -9,10 +9,11 @@ export const ProductPanel = ({ num, title, prod, setProd, result, isBenchmark, b
   const benchmarkWarnText = 'These are typical LED benchmark values. All fields are editable — adjust to match a specific product if available.';
 
   const derivedItems = result ? [
-    { lbl: 'Efficacy',     val: fmt.lmw(result.EFF) },
-    { lbl: 'Adj. Qty',     val: fmt.num(result.Q_adj, 0) },
-    { lbl: 'Lifetime',     val: fmt.yr(result.L_base), warn: result.L_base < 1 },
-    { lbl: 'Replacements', val: `${result.N_replace}×` },
+    { lbl: 'Efficacy',        val: fmt.lmw(result.EFF) },
+    { lbl: 'Equiv. Capacity', val: `${fmt.num(result.Q_adj, 0)} lum-eq.`,
+      tip: 'Total installed capacity needed to maintain design light levels at end of life, expressed as luminaire-equivalents. Accounts for lumen depreciation (LMF). Total system energy scales by this factor regardless of whether over-provision is achieved through additional luminaires or higher-output variants.' },
+    { lbl: 'Lifetime',        val: fmt.yr(result.L_base), warn: result.L_base < 1 },
+    { lbl: 'Replacements',    val: `${result.N_replace}×` },
   ] : [];
 
   return (
