@@ -18,6 +18,7 @@ export default function App() {
   const [controlsEnabled, setControlsEnabled] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
   const [benchmarkId, setBenchmarkId] = useState(null);
+  const [showBanner, setShowBanner] = useState(true);
 
   const handleBenchmarkSelect = (b) => {
     setProdB(p => ({ ...p, W: b.W, FL: b.FL, LMF: b.LMF, LH: b.LH, GWP_CG: b.GWP_CG, GWP_EOL: b.GWP_EOL, C_SI: b.C_SI }));
@@ -117,6 +118,26 @@ export default function App() {
           ))}
         </div>
       </div>
+
+      {showBanner && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 16,
+          padding: '10px 24px',
+          background: T.amberL, borderBottom: `1px solid ${T.warnBd}`,
+        }}>
+          <span style={{ flex: 1, fontFamily: T.font, fontSize: 11, fontWeight: 300, color: T.c800, lineHeight: 1.5 }}>
+            Compare luminaire products across energy, carbon, and cost over their full lifecycle.
+            Set your project context, enter two products (or use a benchmark preset), and results update live.
+          </span>
+          <button onClick={() => setShowBanner(false)} style={{
+            background: 'none', border: `1px solid ${T.warnBd}`,
+            fontFamily: T.font, fontSize: 8, fontWeight: 500,
+            letterSpacing: '0.1em', textTransform: 'uppercase',
+            color: T.amberD, cursor: 'pointer', padding: '4px 10px',
+            whiteSpace: 'nowrap',
+          }}>Dismiss</button>
+        </div>
+      )}
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', maxWidth: 1200, width: '100%', margin: '0 auto', padding: 20, gap: 12 }}>
 
