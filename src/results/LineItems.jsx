@@ -25,7 +25,7 @@ export const LineItems = ({ rA, rB, PL, labelA, labelB, colorA, colorB }) => {
   return (
     <div style={{ padding: '20px 28px', borderBottom: `1px solid ${T.RULE}` }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
-        <span style={{ fontFamily: T.SANS, fontSize: 13, fontWeight: 600 }}>06 · Line items</span>
+        <span style={{ fontFamily: T.SANS, fontSize: 13, fontWeight: 600 }}>07 · Line items</span>
         <span style={micro}>[ {PL}-YR PRESENT VALUE ]</span>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '24px 2.4fr 1fr 1fr 1fr', padding: '6px 0', borderTop: `1px solid ${T.INK}`, borderBottom: `1px solid ${T.INK}` }}>

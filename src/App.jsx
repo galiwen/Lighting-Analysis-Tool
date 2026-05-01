@@ -4,6 +4,7 @@ import { runProductAnalysis, validateInputs } from './calc/engine.js';
 import {
   PROJECT_DEFAULTS, PRODUCT_A_DEFAULTS, PRODUCT_B_DEFAULTS, CTRL_DEFAULTS,
   LUM_DEFAULTS, L90_DEFAULTS, L70_DEFAULTS,
+  PRODUCT_A_PRESETS, BENCHMARKS,
 } from './inputs/defaults.js';
 import { ProjectPanel } from './inputs/ProjectPanel.jsx';
 import { ProductPanel } from './inputs/ProductPanel.jsx';
@@ -28,6 +29,32 @@ const linkBtn = {
   letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer',
 };
 
+const sliceEqual = (a, b, keys) => keys.every(k => a[k] === b[k]);
+const PROD_KEYS = ['W', 'FL', 'Q', 'LMF', 'LH', 'GWP_CG', 'GWP_EOL', 'C_SI'];
+const CTRL_KEYS = ['CSC', 'CACC', 'r', 'LT'];
+
+const promote = (r) => {
+  if (!r?.ctrlResults) return r;
+  const c = r.ctrlResults;
+  return {
+    ...r,
+    E_base: c.E_control_maint,
+    L_base: c.L_control_maint,
+    N_replace: c.N_replace_ctrl_maint,
+    TC_base: c.TC_control_maint,
+    gwpBase: c.gwpCtrlMaint,
+    pvEnergyTotal: c.pvEnergyTotal_maint,
+    PV_replace: c.PV_replace_maint,
+    replaceSchedule: c.replaceSchedule_maint,
+    profile: c.profile_maint,
+    emissionsProfile: c.emissionsProfile_maint,
+    ctrlResults: {
+      ...c,
+      base: { E: r.E_base, L: r.L_base, N_replace: r.N_replace, TC: r.TC_base, gwp: r.gwpBase },
+    },
+  };
+};
+
 export default function App() {
   const [mode, setMode] = useState('AB');
   const [proj, setProj] = useState({ ...PROJECT_DEFAULTS });
@@ -37,31 +64,49 @@ export default function App() {
   const [l90, setL90] = useState({ ...L90_DEFAULTS });
   const [l70, setL70] = useState({ ...L70_DEFAULTS });
   const [ctrl, setCtrl] = useState({ ...CTRL_DEFAULTS });
-  const [ctrlEnabled, setCtrlEnabled] = useState(false);
+
+  const [presetA, setPresetA] = useState(null);
+  const [presetB, setPresetB] = useState(null);
+  const [presetCtrl, setPresetCtrl] = useState(null);
 
   const [infoOpen, setInfoOpen] = useState(false);
   const [glossOpen, setGlossOpen] = useState(false);
-  const [benchmarkId, setBenchmarkId] = useState(null);
 
-  const handleBenchmarkSelect = (b) => {
-    setProdB(p => ({ ...p, W: b.W, FL: b.FL, LMF: b.LMF, LH: b.LH, GWP_CG: b.GWP_CG, GWP_EOL: b.GWP_EOL, C_SI: b.C_SI }));
-    setBenchmarkId(b.id);
+  const handlePresetA = (b) => {
+    setProdA(p => ({ ...p, W: b.W, FL: b.FL, LMF: b.LMF, LH: b.LH, GWP_CG: b.GWP_CG, GWP_EOL: b.GWP_EOL, C_SI: b.C_SI }));
+    setPresetA(b.id);
   };
+  const handlePresetB = (b) => {
+    setProdB(p => ({ ...p, W: b.W, FL: b.FL, LMF: b.LMF, LH: b.LH, GWP_CG: b.GWP_CG, GWP_EOL: b.GWP_EOL, C_SI: b.C_SI }));
+    setPresetB(b.id);
+  };
+  const handlePresetCtrl = (p) => {
+    setCtrl({ CSC: p.CSC, CACC: p.CACC, r: p.r, LT: p.LT });
+    setPresetCtrl(p.id);
+  };
+
+  const handleClearA = () => { setProdA({ ...PRODUCT_A_DEFAULTS }); setPresetA(null); };
+  const handleClearB = () => { setProdB({ ...PRODUCT_B_DEFAULTS }); setPresetB(null); };
+  const handleClearCtrl = () => { setCtrl({ ...CTRL_DEFAULTS }); setPresetCtrl(null); };
+
+  const canClearA = !!presetA || !sliceEqual(prodA, PRODUCT_A_DEFAULTS, PROD_KEYS);
+  const canClearB = !!presetB || !sliceEqual(prodB, PRODUCT_B_DEFAULTS, PROD_KEYS);
+  const canClearCtrl = !!presetCtrl || !sliceEqual(ctrl, CTRL_DEFAULTS, CTRL_KEYS);
 
   const switchToL90 = () => setMode('L90L70');
 
   const validation = useMemo(() => {
     if (mode === 'AB') {
-      const p  = validateInputs(proj,  'Project');
-      const a  = validateInputs(prodA, 'Product A');
-      const b  = validateInputs(prodB, 'Product B');
+      const p = validateInputs(proj, 'Project');
+      const a = validateInputs(prodA, 'Product A');
+      const b = validateInputs(prodB, 'Product B');
       return { errors: [...p.errors, ...a.errors, ...b.errors], warnings: [...p.warnings, ...a.warnings, ...b.warnings] };
     }
     const lumA = { ...lum, ...l90 };
     const lumB = { ...lum, ...l70 };
-    const p  = validateInputs(proj,  'Project');
-    const a  = validateInputs(lumA, 'L90');
-    const b  = validateInputs(lumB, 'L70');
+    const p = validateInputs(proj, 'Project');
+    const a = validateInputs(lumA, 'L90');
+    const b = validateInputs(lumB, 'L70');
     return { errors: [...p.errors, ...a.errors, ...b.errors], warnings: [...p.warnings, ...a.warnings, ...b.warnings] };
   }, [mode, proj, prodA, prodB, lum, l90, l70]);
 
@@ -71,10 +116,10 @@ export default function App() {
     if (hasErrors) return { rA: null, rB: null, labelA: 'A', labelB: 'B' };
     try {
       if (mode === 'AB') {
-        const rA = runProductAnalysis(proj, prodA, ctrlEnabled, ctrlEnabled ? ctrl : null);
+        const rawA = runProductAnalysis(proj, prodA, true, ctrl);
         const qB = { ...prodB, Q: prodB.Q || prodA.Q };
-        const rB = runProductAnalysis(proj, qB, false, null);
-        return { rA, rB, labelA: 'A', labelB: 'B' };
+        const rawB = runProductAnalysis(proj, qB, true, ctrl);
+        return { rA: promote(rawA), rB: promote(rawB), labelA: 'A', labelB: 'B' };
       }
       const lumA = { ...lum, ...l90 };
       const lumB = { ...lum, ...l70 };
@@ -84,11 +129,9 @@ export default function App() {
     } catch {
       return { rA: null, rB: null, labelA: 'A', labelB: 'B' };
     }
-  }, [hasErrors, mode, proj, prodA, prodB, lum, l90, l70, ctrl, ctrlEnabled]);
+  }, [hasErrors, mode, proj, prodA, prodB, lum, l90, l70, ctrl]);
 
-  const npv = (rA && rB)
-    ? rB.TC_base - (ctrlEnabled && rA.ctrlResults ? rA.ctrlResults.TC_control_maint : rA.TC_base)
-    : 0;
+  const npv = (rA && rB) ? rB.TC_base - rA.TC_base : 0;
 
   const colorA = T.BLUE, colorB = T.VERM;
   const colorAd = T.BLUE_D, colorBd = T.VERM_D;
@@ -110,7 +153,7 @@ export default function App() {
               Lighting Audit
             </span>
             <span style={{ fontFamily: T.MONO, fontSize: 9, color: T.MUTED, letterSpacing: '0.08em' }}>
-              v0.4 · CRC LP · BETA
+              v0.5 · CRC LP · BETA
             </span>
           </div>
           <div />
@@ -157,19 +200,29 @@ export default function App() {
 
         <section style={{ borderBottom: `1px solid ${T.INK}` }}>
           {mode === 'AB' ? (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr 1.4fr' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.4fr 1.4fr' }}>
               <ProjectPanel proj={proj} setProj={setProj} validation={validation} />
+              <ControlsPanel
+                ctrl={ctrl} setCtrl={setCtrl}
+                presetId={presetCtrl} onPresetSelect={handlePresetCtrl}
+                onClear={handleClearCtrl} canClear={canClearCtrl}
+              />
               <ProductPanel
                 num="A" prod={prodA} setProd={setProdA}
                 accent={T.BLUE} accentLabel="PROPOSED"
                 validation={validation}
+                presets={PRODUCT_A_PRESETS}
+                selectedPreset={presetA} onPresetSelect={handlePresetA}
+                onClear={handleClearA} canClear={canClearA}
                 onSwitchMode={switchToL90}
               />
               <ProductPanel
                 num="B" prod={prodB} setProd={setProdB}
                 accent={T.VERM} accentLabel="BENCHMARK"
                 validation={validation}
-                selectedBenchmark={benchmarkId} onBenchmarkSelect={handleBenchmarkSelect}
+                presets={BENCHMARKS}
+                selectedPreset={presetB} onPresetSelect={handlePresetB}
+                onClear={handleClearB} canClear={canClearB}
                 onSwitchMode={switchToL90}
                 last
               />
@@ -182,9 +235,6 @@ export default function App() {
               l70={l70} setL70={setL70}
             />
           )}
-          {mode === 'AB' && (
-            <ControlsPanel ctrl={ctrl} setCtrl={setCtrl} enabled={ctrlEnabled} onToggle={setCtrlEnabled} />
-          )}
         </section>
 
         <section>
@@ -192,11 +242,11 @@ export default function App() {
           <KPIGrid rA={rA} rB={rB} labelA={labelA} labelB={labelB} colorA={colorA} colorB={colorB} />
           <CarbonBars rA={rA} rB={rB} labelA={labelA} labelB={labelB}
                       colorA={colorA} colorB={colorB} colorAd={colorAd} colorBd={colorBd} />
-          <SectionHead idx="05" title="Cumulative cost — Net Present Value" right="[ AUD · DISCOUNTED ]" />
+          <SectionHead idx="06" title="Cumulative cost — Net Present Value" right="[ AUD · DISCOUNTED ]" />
           <CumulativeCostChart rA={rA} rB={rB} PL={proj.PL} labelA={labelA} labelB={labelB} colorA={colorA} colorB={colorB} />
           <LineItems rA={rA} rB={rB} PL={proj.PL} labelA={labelA} labelB={labelB} colorA={colorA} colorB={colorB} />
           <ReplacementSchedule rA={rA} rB={rB} labelA={labelA} labelB={labelB} colorA={colorA} colorB={colorB} />
-          {ctrlEnabled && mode === 'AB' && (
+          {mode === 'AB' && (
             <ControlsTable rA={rA} rB={rB} ctrl={ctrl} PL={proj.PL} />
           )}
           <footer style={{ padding: '24px 28px', display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'baseline', gap: 18 }}>

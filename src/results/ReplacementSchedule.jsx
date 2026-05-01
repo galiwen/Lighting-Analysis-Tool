@@ -13,7 +13,7 @@ export const ReplacementSchedule = ({ rA, rB, labelA, labelB, colorA, colorB }) 
   return (
     <div style={{ padding: '20px 28px', borderBottom: `1px solid ${T.RULE}` }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
-        <span style={{ fontFamily: T.SANS, fontSize: 13, fontWeight: 600 }}>07 · Replacement schedule</span>
+        <span style={{ fontFamily: T.SANS, fontSize: 13, fontWeight: 600 }}>08 · Replacement schedule</span>
         <span style={micro}>[ EVENTS · PRESENT VALUE ]</span>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>

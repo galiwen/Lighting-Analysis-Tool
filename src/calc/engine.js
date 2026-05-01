@@ -223,6 +223,15 @@ export function runProductAnalysis(proj, prod, controlsEnabled, ctrl) {
     const gwpCtrl = calculateTotalGWP(Q_adj, GWP_CG, GWP_EOL, N_replace_ctrl, emissCtrl.totalEmissions);
     const gwpCtrlMaint = calculateTotalGWP(Q_adj, GWP_CG, GWP_EOL, N_replace_ctrl_maint, emissCtrlMaint.totalEmissions);
 
+    const profile_ctrl = generateCumulativeProfile(
+      { C_initial, E_base: E_control, replaceSchedule: pvReplaceCtrl.schedule },
+      PL, GF_0, GD, GDT, ER, i, d
+    );
+    const profile_maint = generateCumulativeProfile(
+      { C_initial, E_base: E_control_maint, replaceSchedule: pvReplaceCtrlMaint.schedule },
+      PL, GF_0, GD, GDT, ER, i, d
+    );
+
     ctrlResults = {
       ACC_total, ALP, TLP,
       E_control, E_control_maint,
@@ -231,6 +240,16 @@ export function runProductAnalysis(proj, prod, controlsEnabled, ctrl) {
       TC_control, TC_control_maint,
       annual_savings, simple_payback,
       gwpCtrl, gwpCtrlMaint,
+      pvEnergyTotal_ctrl:  pvEnergyCtrl.totalPV,
+      pvEnergyTotal_maint: pvEnergyCtrlMaint.totalPV,
+      PV_replace_ctrl:     pvReplaceCtrl.pvTotal,
+      PV_replace_maint:    pvReplaceCtrlMaint.pvTotal,
+      replaceSchedule_ctrl:  pvReplaceCtrl.schedule,
+      replaceSchedule_maint: pvReplaceCtrlMaint.schedule,
+      profile_ctrl,
+      profile_maint,
+      emissionsProfile_ctrl:  emissCtrl.profile,
+      emissionsProfile_maint: emissCtrlMaint.profile,
     };
   }
 

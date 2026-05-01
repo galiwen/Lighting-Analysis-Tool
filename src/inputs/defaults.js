@@ -30,3 +30,19 @@ export const BENCHMARKS = [
   { id: 'troffer',   label: 'Troffer',    sub: 'Recessed grid ceiling panel',               W: 40, FL: 3600, LMF: 0.70, LH: 50000, GWP_CG: 25,  GWP_EOL: 2.5, C_SI: 250 },
   { id: 'posttop',   label: 'Post Top',   sub: 'Exterior street / amenity luminaire',       W: 80, FL: 8000, LMF: 0.70, LH: 50000, GWP_CG: 45,  GWP_EOL: 5.0, C_SI: 800 },
 ];
+
+export const PRODUCT_A_PRESETS = [
+  { id: 'hi-downlight', label: 'Hi-Eff Downlight', sub: 'High-spec residential/commercial downlight', W: 12, FL: 1600, LMF: 0.95, LH: 60000, GWP_CG: 12, GWP_EOL: 1.2, C_SI: 220 },
+  { id: 'hi-linear',    label: 'Hi-Eff Linear',    sub: 'Premium suspended/surface linear',           W: 24, FL: 3500, LMF: 0.92, LH: 60000, GWP_CG: 16, GWP_EOL: 1.5, C_SI: 280 },
+  { id: 'hi-cylinder',  label: 'Hi-Eff Cylinder',  sub: 'Pendant or surface-mount cylinder',          W: 18, FL: 2200, LMF: 0.92, LH: 60000, GWP_CG: 14, GWP_EOL: 1.4, C_SI: 320 },
+  { id: 'tunable',      label: 'Tunable Troffer',  sub: 'Tunable-white grid panel',                   W: 28, FL: 3600, LMF: 0.90, LH: 60000, GWP_CG: 18, GWP_EOL: 1.8, C_SI: 320 },
+  { id: 'solar-post',   label: 'Solar Post Top',   sub: 'Premium exterior amenity luminaire',         W: 60, FL: 8000, LMF: 0.85, LH: 60000, GWP_CG: 35, GWP_EOL: 4.0, C_SI: 950 },
+];
+
+export const CTRL_PRESETS = [
+  { id: 'occupancy', label: 'Occupancy',   sub: 'Occupancy sensors only',                      CSC: 0.85, CACC: 1.10, r: 0.08, LT: 10 },
+  { id: 'daylight',  label: 'Daylight',    sub: 'Daylight harvesting',                         CSC: 0.75, CACC: 1.15, r: 0.08, LT: 10 },
+  { id: 'combined',  label: 'Combined',    sub: 'Occupancy + daylight',                        CSC: 0.65, CACC: 1.25, r: 0.08, LT: 10 },
+  { id: 'fullsmart', label: 'Full Smart',  sub: 'Networked DALI / scheduling / scene control', CSC: 0.50, CACC: 1.40, r: 0.08, LT: 12 },
+  { id: 'task',      label: 'Task Tuning', sub: 'Constant-lumen + task tuning',                CSC: 0.80, CACC: 1.10, r: 0.08, LT: 10 },
+];

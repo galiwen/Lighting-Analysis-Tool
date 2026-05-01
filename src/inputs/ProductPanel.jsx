@@ -1,42 +1,52 @@
 import { T, micro } from '../design/tokens.js';
 import { NF } from './NumberField.jsx';
-import { BENCHMARKS } from './defaults.js';
 
 export const ProductPanel = ({
   num, prod, setProd,
   accent, accentLabel,
   validation,
-  selectedBenchmark, onBenchmarkSelect,
+  presets, selectedPreset, onPresetSelect,
+  onClear, canClear,
   onSwitchMode,
   last,
 }) => {
   const s = k => v => setProd(p => ({ ...p, [k]: v }));
   const errFor = frag => validation.errors.find(e => e.toLowerCase().includes(frag));
   const warnFor = frag => validation.warnings.find(w => w.toLowerCase().includes(frag));
+  const sectionNum = num === 'A' ? '03' : '04';
 
   return (
     <div style={{ padding: '16px 22px', borderRight: last ? 'none' : `1px solid ${T.SUBTLE}` }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
                     paddingBottom: 8, borderBottom: `2px solid ${accent}`, marginBottom: 4 }}>
         <span style={{ fontFamily: T.SANS, fontSize: 12, fontWeight: 600, color: accent }}>
-          0{num === 'A' ? 2 : 3} · Product {num}
+          {sectionNum} · Product {num}
         </span>
         <span style={{ ...micro, color: accent }}>{accentLabel}</span>
       </div>
 
-      {num === 'B' && onBenchmarkSelect && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '8px 0', borderBottom: `1px solid ${T.SUBTLE}` }}>
-          {BENCHMARKS.map(b => (
-            <button key={b.id} onClick={() => onBenchmarkSelect(b)} title={b.sub} style={{
+      {presets && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '8px 0', borderBottom: `1px solid ${T.SUBTLE}`, alignItems: 'center' }}>
+          {presets.map(b => (
+            <button key={b.id} onClick={() => onPresetSelect(b)} title={b.sub} style={{
               padding: '3px 8px',
-              background: selectedBenchmark === b.id ? T.INK : 'transparent',
-              color: selectedBenchmark === b.id ? T.BG : T.MUTED,
-              border: `1px solid ${selectedBenchmark === b.id ? T.INK : T.SUBTLE}`,
+              background: selectedPreset === b.id ? T.INK : 'transparent',
+              color: selectedPreset === b.id ? T.BG : T.MUTED,
+              border: `1px solid ${selectedPreset === b.id ? T.INK : T.SUBTLE}`,
               fontFamily: T.MONO, fontSize: 9, fontWeight: 500,
               letterSpacing: '0.06em', textTransform: 'uppercase',
               cursor: 'pointer',
             }}>{b.label}</button>
           ))}
+          <button onClick={onClear} disabled={!canClear} style={{
+            marginLeft: 'auto',
+            padding: '3px 8px', background: 'transparent',
+            border: 'none',
+            fontFamily: T.MONO, fontSize: 9, fontWeight: 500,
+            letterSpacing: '0.06em', textTransform: 'uppercase',
+            color: canClear ? accent : T.SUBTLE,
+            cursor: canClear ? 'pointer' : 'default',
+          }}>× CLEAR</button>
         </div>
       )}
 

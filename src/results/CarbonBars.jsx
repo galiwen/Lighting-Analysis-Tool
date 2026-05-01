@@ -30,7 +30,7 @@ export const CarbonBars = ({ rA, rB, labelA, labelB, colorA, colorB, colorAd, co
   return (
     <div style={{ padding: '20px 28px', borderBottom: `1px solid ${T.RULE}` }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
-        <span style={{ fontFamily: T.SANS, fontSize: 13, fontWeight: 600 }}>04 · Carbon breakdown</span>
+        <span style={{ fontFamily: T.SANS, fontSize: 13, fontWeight: 600 }}>05 · Carbon breakdown</span>
         <span style={micro}>[ kgCO₂e · LIFECYCLE ]</span>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr 90px', gap: 12, marginBottom: 4 }}>
