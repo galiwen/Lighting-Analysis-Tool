@@ -144,7 +144,18 @@ export default function App() {
         <div style={{ background: T.white, border: `1px solid ${T.c100}` }}>
           {mode === 'ab' ? (
             <>
-              <ProjectPanel proj={proj} setProj={setProj} validation={validation} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                <div style={{ borderRight: `1px solid ${T.c100}` }}>
+                  <ProjectPanel proj={proj} setProj={setProj} validation={validation} />
+                </div>
+                <div>
+                  <ControlsPanel
+                    ctrl={ctrl} setCtrl={setCtrl}
+                    enabled={controlsEnabled}
+                    onToggle={setControlsEnabled}
+                  />
+                </div>
+              </div>
               <div style={{ borderTop: `1px solid ${T.c100}`, display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
                 <div style={{ borderRight: `1px solid ${T.c100}` }}>
                   <ProductPanel
@@ -167,11 +178,6 @@ export default function App() {
                   />
                 </div>
               </div>
-              <ControlsPanel
-                ctrl={ctrl} setCtrl={setCtrl}
-                enabled={controlsEnabled}
-                onToggle={setControlsEnabled}
-              />
             </>
           ) : (
             <L90L70InputPanel

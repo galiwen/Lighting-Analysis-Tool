@@ -5,14 +5,14 @@ import { NF } from './NumberField.jsx';
 export const ControlsPanel = ({ ctrl, setCtrl, enabled, onToggle }) => {
   const s = k => v => setCtrl(p => ({ ...p, [k]: v }));
   return (
-    <div style={{ borderTop: `1.5px solid ${T.c100}` }}>
+    <div>
       <div style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', background: enabled ? '#FFFEF5' : T.c050, gap: 16 }}>
         <Toggle on={enabled} onChange={onToggle} label="Control System Module" />
         {!enabled && <span style={{ fontFamily: T.font, fontSize: 9, color: T.c300, letterSpacing: '0.06em' }}>Enable to model occupancy / daylight / maintenance dimming savings</span>}
       </div>
       <div style={{
         padding: '0 16px 16px', background: enabled ? '#FFFEF5' : T.c050,
-        display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0 16px',
+        display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px',
         opacity: enabled ? 1 : 0.38,
         pointerEvents: enabled ? 'auto' : 'none',
         transition: 'opacity 200ms',
