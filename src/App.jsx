@@ -1,236 +1,215 @@
 import { useState, useMemo } from 'react';
-import { T } from './design/tokens.js';
-import { runProductAnalysis, calculateComparisonNPV, validateInputs } from './calc/engine.js';
-import { PROJECT_DEFAULTS, PRODUCT_A_DEFAULTS, PRODUCT_B_DEFAULTS, CTRL_DEFAULTS } from './inputs/defaults.js';
+import { T, micro } from './design/tokens.js';
+import { runProductAnalysis, validateInputs } from './calc/engine.js';
+import {
+  PROJECT_DEFAULTS, PRODUCT_A_DEFAULTS, PRODUCT_B_DEFAULTS, CTRL_DEFAULTS,
+  LUM_DEFAULTS, L90_DEFAULTS, L70_DEFAULTS,
+} from './inputs/defaults.js';
 import { ProjectPanel } from './inputs/ProjectPanel.jsx';
 import { ProductPanel } from './inputs/ProductPanel.jsx';
 import { ControlsPanel } from './inputs/ControlsPanel.jsx';
 import { L90L70InputPanel } from './inputs/L90L70InputPanel.jsx';
-import { ABSummary } from './results/ABSummary.jsx';
-import { GWPTab } from './results/GWPTab.jsx';
-import { ControlsTab } from './results/ControlsTab.jsx';
-import { FinancialTab } from './results/FinancialTab.jsx';
-import { L90L70Results } from './results/L90L70Results.jsx';
+import { VerdictRibbon } from './results/VerdictRibbon.jsx';
+import { KPIGrid } from './results/KPIGrid.jsx';
+import { CarbonBars } from './results/CarbonBars.jsx';
+import { CumulativeCostChart } from './results/CumulativeCostChart.jsx';
+import { LineItems } from './results/LineItems.jsx';
+import { ReplacementSchedule } from './results/ReplacementSchedule.jsx';
+import { ControlsTable } from './results/ControlsTable.jsx';
+import { SectionHead } from './components/atoms.jsx';
 import { InfoModal } from './modals/InfoModal.jsx';
+import { GlossaryModal } from './modals/GlossaryModal.jsx';
+
+const MAX_W = 1320;
+
+const linkBtn = {
+  padding: '7px 12px', background: 'transparent', border: `1px solid ${T.INK}`,
+  fontFamily: T.MONO, fontSize: 10, fontWeight: 500, color: T.INK,
+  letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer',
+};
 
 export default function App() {
-  const [mode, setMode] = useState('ab');
-  const [controlsEnabled, setControlsEnabled] = useState(false);
+  const [mode, setMode] = useState('AB');
+  const [proj, setProj] = useState({ ...PROJECT_DEFAULTS });
+  const [prodA, setProdA] = useState({ ...PRODUCT_A_DEFAULTS });
+  const [prodB, setProdB] = useState({ ...PRODUCT_B_DEFAULTS });
+  const [lum, setLum] = useState({ ...LUM_DEFAULTS });
+  const [l90, setL90] = useState({ ...L90_DEFAULTS });
+  const [l70, setL70] = useState({ ...L70_DEFAULTS });
+  const [ctrl, setCtrl] = useState({ ...CTRL_DEFAULTS });
+  const [ctrlEnabled, setCtrlEnabled] = useState(false);
+
   const [infoOpen, setInfoOpen] = useState(false);
+  const [glossOpen, setGlossOpen] = useState(false);
   const [benchmarkId, setBenchmarkId] = useState(null);
-  const [showBanner, setShowBanner] = useState(true);
 
   const handleBenchmarkSelect = (b) => {
     setProdB(p => ({ ...p, W: b.W, FL: b.FL, LMF: b.LMF, LH: b.LH, GWP_CG: b.GWP_CG, GWP_EOL: b.GWP_EOL, C_SI: b.C_SI }));
     setBenchmarkId(b.id);
   };
 
-  const [proj, setProj] = useState({ ...PROJECT_DEFAULTS });
-  const [prodA, setProdA] = useState({ ...PRODUCT_A_DEFAULTS });
-  const [prodB, setProdB] = useState({ ...PRODUCT_B_DEFAULTS });
-  const [ctrl, setCtrl] = useState({ ...CTRL_DEFAULTS });
-  const [lum, setLum] = useState({ W: 28, FL: 3200, Q: 500, GWP_CG: 18, GWP_EOL: 2.0, C_SI: 320 });
-  const [l90, setL90] = useState({ LMF: 0.90, LH: 40000 });
-  const [l70, setL70] = useState({ LMF: 0.70, LH: 60000 });
+  const switchToL90 = () => setMode('L90L70');
 
-  const validation = useMemo(() => ({
-    project:  validateInputs(proj,  'Project'),
-    productA: validateInputs(prodA, 'Product A'),
-    productB: validateInputs(prodB, 'Product B'),
-  }), [proj, prodA, prodB]);
-
-  const hasErrors = validation.project.errors.length > 0
-    || validation.productA.errors.length > 0
-    || validation.productB.errors.length > 0;
-
-  const computation = useMemo(() => {
-    if (hasErrors) return { results: null, error: null };
-    try {
-      if (mode === 'ab') {
-        const rA = runProductAnalysis(proj, prodA, controlsEnabled, ctrl);
-        const qB = { ...prodB, Q: prodB.Q || prodA.Q };
-        const rB = runProductAnalysis(proj, qB, controlsEnabled, ctrl);
-        const npv = calculateComparisonNPV(
-          { C_initial: rA.C_initial, E_base: rA.E_base, PV_replace: rA.PV_replace },
-          { C_initial: rB.C_initial, E_base: rB.E_base, PV_replace: rB.PV_replace },
-          proj.d, proj.PL, proj.ER, proj.i
-        );
-        return { results: { mode: 'ab', rA, rB, npv }, error: null };
-      } else {
-        const prod90 = { ...lum, LMF: l90.LMF, LH: l90.LH };
-        const prod70 = { ...lum, LMF: l70.LMF, LH: l70.LH };
-        const r90 = runProductAnalysis(proj, prod90, false, null);
-        const r70 = runProductAnalysis(proj, prod70, false, null);
-        r90.LMF_used = l90.LMF; r90.LH_used = l90.LH;
-        r70.LMF_used = l70.LMF; r70.LH_used = l70.LH;
-        const npv = calculateComparisonNPV(
-          { C_initial: r90.C_initial, E_base: r90.E_base, PV_replace: r90.PV_replace },
-          { C_initial: r70.C_initial, E_base: r70.E_base, PV_replace: r70.PV_replace },
-          proj.d, proj.PL, proj.ER, proj.i
-        );
-        return { results: { mode: 'l90l70', r90, r70, npv }, error: null };
-      }
-    } catch (e) {
-      return { results: null, error: e.message || 'Calculation error — check inputs' };
+  const validation = useMemo(() => {
+    if (mode === 'AB') {
+      const p  = validateInputs(proj,  'Project');
+      const a  = validateInputs(prodA, 'Product A');
+      const b  = validateInputs(prodB, 'Product B');
+      return { errors: [...p.errors, ...a.errors, ...b.errors], warnings: [...p.warnings, ...a.warnings, ...b.warnings] };
     }
-  }, [mode, proj, prodA, prodB, ctrl, lum, l90, l70, controlsEnabled, hasErrors]);
+    const lumA = { ...lum, ...l90 };
+    const lumB = { ...lum, ...l70 };
+    const p  = validateInputs(proj,  'Project');
+    const a  = validateInputs(lumA, 'L90');
+    const b  = validateInputs(lumB, 'L70');
+    return { errors: [...p.errors, ...a.errors, ...b.errors], warnings: [...p.warnings, ...a.warnings, ...b.warnings] };
+  }, [mode, proj, prodA, prodB, lum, l90, l70]);
 
-  const results = computation.results;
-  const calcError = computation.error;
+  const hasErrors = validation.errors.length > 0;
 
-  const switchToL90 = () => { setMode('l90l70'); };
+  const { rA, rB, labelA, labelB } = useMemo(() => {
+    if (hasErrors) return { rA: null, rB: null, labelA: 'A', labelB: 'B' };
+    try {
+      if (mode === 'AB') {
+        const rA = runProductAnalysis(proj, prodA, ctrlEnabled, ctrlEnabled ? ctrl : null);
+        const qB = { ...prodB, Q: prodB.Q || prodA.Q };
+        const rB = runProductAnalysis(proj, qB, false, null);
+        return { rA, rB, labelA: 'A', labelB: 'B' };
+      }
+      const lumA = { ...lum, ...l90 };
+      const lumB = { ...lum, ...l70 };
+      const rA = runProductAnalysis(proj, lumA, false, null);
+      const rB = runProductAnalysis(proj, lumB, false, null);
+      return { rA, rB, labelA: 'L90', labelB: 'L70' };
+    } catch {
+      return { rA: null, rB: null, labelA: 'A', labelB: 'B' };
+    }
+  }, [hasErrors, mode, proj, prodA, prodB, lum, l90, l70, ctrl, ctrlEnabled]);
 
-  const rA = results?.mode === 'ab' ? results.rA : null;
-  const rB = results?.mode === 'ab' ? results.rB : null;
-  const r90 = results?.mode === 'l90l70' ? results.r90 : null;
-  const r70 = results?.mode === 'l90l70' ? results.r70 : null;
+  const npv = (rA && rB)
+    ? rB.TC_base - (ctrlEnabled && rA.ctrlResults ? rA.ctrlResults.TC_control_maint : rA.TC_base)
+    : 0;
+
+  const colorA = T.BLUE, colorB = T.VERM;
+  const colorAd = T.BLUE_D, colorBd = T.VERM_D;
 
   return (
-    <div style={{ minHeight: '100vh', background: T.warm, display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', background: T.BG, fontFamily: T.SANS, color: T.INK }}>
 
-      <div style={{ background: T.c900, flexShrink: 0, borderBottom: `1px solid ${T.c700}` }}>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 24px 10px' }}>
-          <span style={{ fontFamily: T.font, fontWeight: 500, fontSize: 16, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.white }}>
-            Lighting Analysis Tool
-          </span>
-          <button
-            onClick={() => setInfoOpen(true)}
-            title="About this tool"
-            style={{
-              padding: '3px 10px', border: `1px solid ${T.c400}`, background: 'none',
-              fontFamily: T.font, fontSize: 9, fontWeight: 500,
-              letterSpacing: '0.12em', textTransform: 'uppercase',
-              color: T.c200, cursor: 'pointer',
-            }}
-          >Info</button>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'stretch', paddingLeft: 20, gap: 0 }}>
-          {[['ab', 'Product A vs B'], ['l90l70', 'L90 vs L70']].map(([id, lbl]) => (
-            <button key={id} onClick={() => setMode(id)} style={{
-              padding: '8px 20px', background: 'none', border: 'none',
-              borderBottom: `2px solid ${mode === id ? T.amber : 'transparent'}`,
-              fontFamily: T.font, fontWeight: 500, fontSize: 10,
-              letterSpacing: '0.12em', textTransform: 'uppercase',
-              color: mode === id ? T.amber : T.c100, cursor: 'pointer',
-            }}>{lbl}</button>
-          ))}
-        </div>
-      </div>
-
-      {showBanner && (
+      <header style={{ borderBottom: `1px solid ${T.INK}`, background: T.BG }}>
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 16,
-          padding: '10px 24px',
-          background: T.amberL, borderBottom: `1px solid ${T.warnBd}`,
+          maxWidth: MAX_W, margin: '0 auto',
+          display: 'grid', gridTemplateColumns: 'auto 1fr auto auto', gap: 18, alignItems: 'center',
+          padding: '14px 28px',
         }}>
-          <span style={{ flex: 1, fontFamily: T.font, fontSize: 11, fontWeight: 300, color: T.c800, lineHeight: 1.5 }}>
-            Compare luminaire products across energy, carbon, and cost over their full lifecycle.
-            Set your project context, enter two products (or use a benchmark preset), and results update live.
-          </span>
-          <button onClick={() => setShowBanner(false)} style={{
-            background: 'none', border: `1px solid ${T.warnBd}`,
-            fontFamily: T.font, fontSize: 8, fontWeight: 500,
-            letterSpacing: '0.1em', textTransform: 'uppercase',
-            color: T.amberD, cursor: 'pointer', padding: '4px 10px',
-            whiteSpace: 'nowrap',
-          }}>Dismiss</button>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
+            <span style={{ fontFamily: T.MONO, fontSize: 9, fontWeight: 500, color: T.MUTED, letterSpacing: '0.12em' }}>
+              BLT.AU · DEMO
+            </span>
+            <span style={{ fontFamily: T.SANS, fontSize: 18, fontWeight: 600, letterSpacing: '-0.01em' }}>
+              Lighting Audit
+            </span>
+            <span style={{ fontFamily: T.MONO, fontSize: 9, color: T.MUTED, letterSpacing: '0.08em' }}>
+              v0.4 · CRC LP · BETA
+            </span>
+          </div>
+          <div />
+          <div style={{ display: 'flex', border: `1px solid ${T.INK}` }}>
+            {[{ id: 'AB', l: 'A vs B' }, { id: 'L90L70', l: 'L90 ↔ L70' }].map(m => (
+              <button key={m.id} onClick={() => setMode(m.id)} style={{
+                padding: '6px 14px', border: 'none', cursor: 'pointer',
+                background: mode === m.id ? T.INK : 'transparent',
+                color: mode === m.id ? T.BG : T.INK,
+                fontFamily: T.MONO, fontSize: 10, fontWeight: 500,
+                letterSpacing: '0.08em', textTransform: 'uppercase',
+              }}>{m.l}</button>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={() => setGlossOpen(true)} style={linkBtn}>Glossary</button>
+            <button onClick={() => setInfoOpen(true)} style={linkBtn}>Methodology</button>
+          </div>
         </div>
-      )}
+        {(validation.errors.length > 0 || validation.warnings.length > 0) && (
+          <div style={{
+            background: validation.errors.length > 0 ? '#FBE9E5' : T.WARN_BG,
+            borderTop: `1px solid ${T.SUBTLE}`,
+          }}>
+            <div style={{
+              maxWidth: MAX_W, margin: '0 auto',
+              padding: '6px 28px',
+              display: 'flex', gap: 18, alignItems: 'center',
+            }}>
+              <span style={{ ...micro, color: validation.errors.length > 0 ? T.ERROR : T.WARN_BD }}>
+                [ {validation.errors.length > 0
+                  ? `${validation.errors.length} ERROR${validation.errors.length > 1 ? 'S' : ''}`
+                  : `${validation.warnings.length} WARNING${validation.warnings.length > 1 ? 'S' : ''}`} ]
+              </span>
+              <span style={{ fontFamily: T.SANS, fontSize: 11, color: T.INK }}>
+                {validation.errors[0] || validation.warnings[0]}
+              </span>
+            </div>
+          </div>
+        )}
+      </header>
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', maxWidth: 1200, width: '100%', margin: '0 auto', padding: 20, gap: 12 }}>
+      <main style={{ maxWidth: MAX_W, margin: '0 auto' }}>
 
-        <div style={{ background: T.white, border: `1px solid ${T.c100}` }}>
-          {mode === 'ab' ? (
-            <>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
-                <div style={{ borderRight: `1px solid ${T.c100}` }}>
-                  <ProjectPanel proj={proj} setProj={setProj} validation={validation} />
-                </div>
-                <div>
-                  <ControlsPanel
-                    ctrl={ctrl} setCtrl={setCtrl}
-                    enabled={controlsEnabled}
-                    onToggle={setControlsEnabled}
-                  />
-                </div>
-              </div>
-              <div style={{ borderTop: `1px solid ${T.c100}`, display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
-                <div style={{ borderRight: `1px solid ${T.c100}` }}>
-                  <ProductPanel
-                    num="A" title="Product A"
-                    prod={prodA} setProd={setProdA}
-                    result={rA}
-                    onSwitchMode={switchToL90}
-                    validation={validation.productA}
-                  />
-                </div>
-                <div>
-                  <ProductPanel
-                    num="B" title="Product B"
-                    prod={prodB} setProd={setProdB}
-                    result={rB}
-                    selectedBenchmark={benchmarkId}
-                    onBenchmarkSelect={handleBenchmarkSelect}
-                    onSwitchMode={switchToL90}
-                    validation={validation.productB}
-                  />
-                </div>
-              </div>
-            </>
+        <section style={{ borderBottom: `1px solid ${T.INK}` }}>
+          {mode === 'AB' ? (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr 1.4fr' }}>
+              <ProjectPanel proj={proj} setProj={setProj} validation={validation} />
+              <ProductPanel
+                num="A" prod={prodA} setProd={setProdA}
+                accent={T.BLUE} accentLabel="PROPOSED"
+                validation={validation}
+                onSwitchMode={switchToL90}
+              />
+              <ProductPanel
+                num="B" prod={prodB} setProd={setProdB}
+                accent={T.VERM} accentLabel="BENCHMARK"
+                validation={validation}
+                selectedBenchmark={benchmarkId} onBenchmarkSelect={handleBenchmarkSelect}
+                onSwitchMode={switchToL90}
+                last
+              />
+            </div>
           ) : (
             <L90L70InputPanel
               proj={proj} setProj={setProj}
               lum={lum} setLum={setLum}
               l90={l90} setL90={setL90}
               l70={l70} setL70={setL70}
-              projValidation={validation.project}
             />
           )}
-        </div>
+          {mode === 'AB' && (
+            <ControlsPanel ctrl={ctrl} setCtrl={setCtrl} enabled={ctrlEnabled} onToggle={setCtrlEnabled} />
+          )}
+        </section>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '6px 16px', background: T.white, border: `1px solid ${T.c100}` }}>
-          {hasErrors
-            ? <span style={{ fontFamily: T.font, fontSize: 9, color: T.error, letterSpacing: '0.06em' }}>⚠ Fix input errors to update analysis</span>
-            : calcError
-              ? <span style={{ fontFamily: T.font, fontSize: 9, color: T.error, letterSpacing: '0.06em' }}>{calcError}</span>
-              : results
-                ? <span style={{ fontFamily: T.font, fontSize: 9, color: T.c300, letterSpacing: '0.06em' }}>Analysis complete — Currency: AUD</span>
-                : <span style={{ fontFamily: T.font, fontSize: 9, color: T.c300, letterSpacing: '0.06em' }}>Currency: AUD</span>}
-        </div>
-
-        {mode === 'ab' && (
-          <div style={{ background: T.white, border: `1px solid ${T.c100}`, padding: 20 }}>
-            <ABSummary rA={rA} rB={rB} proj={proj} npv={results?.npv} />
-
-            <div style={{ borderTop: `1px solid ${T.c100}`, marginTop: 4, paddingTop: 20 }}>
-              <div style={{ fontFamily: T.font, fontWeight: 500, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.c800, marginBottom: 12 }}>Carbon (GWP)</div>
-              <GWPTab rA={rA} rB={rB} proj={proj} />
-            </div>
-
-            <div style={{ borderTop: `1px solid ${T.c100}`, marginTop: 20, paddingTop: 20 }}>
-              <div style={{ fontFamily: T.font, fontWeight: 500, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.c800, marginBottom: 12 }}>Financial</div>
-              <FinancialTab rA={rA} rB={rB} proj={proj} npv={results?.npv} />
-            </div>
-
-            {controlsEnabled && rA?.ctrlResults && rB?.ctrlResults && (
-              <div style={{ borderTop: `1px solid ${T.c100}`, marginTop: 20, paddingTop: 20 }}>
-                <div style={{ fontFamily: T.font, fontWeight: 500, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.c800, marginBottom: 12 }}>Controls</div>
-                <ControlsTab rA={rA} rB={rB} proj={proj} ctrl={ctrl} />
-              </div>
-            )}
-          </div>
-        )}
-
-        {mode === 'l90l70' && (
-          <div style={{ background: T.white, border: `1px solid ${T.c100}` }}>
-            <L90L70Results r90={r90} r70={r70} proj={proj} npv={results?.npv} />
-          </div>
-        )}
-      </div>
+        <section>
+          <VerdictRibbon rA={rA} rB={rB} npv={npv} PL={proj.PL} labelA={labelA} labelB={labelB} />
+          <KPIGrid rA={rA} rB={rB} labelA={labelA} labelB={labelB} colorA={colorA} colorB={colorB} />
+          <CarbonBars rA={rA} rB={rB} labelA={labelA} labelB={labelB}
+                      colorA={colorA} colorB={colorB} colorAd={colorAd} colorBd={colorBd} />
+          <SectionHead idx="05" title="Cumulative cost — Net Present Value" right="[ AUD · DISCOUNTED ]" />
+          <CumulativeCostChart rA={rA} rB={rB} PL={proj.PL} labelA={labelA} labelB={labelB} colorA={colorA} colorB={colorB} />
+          <LineItems rA={rA} rB={rB} PL={proj.PL} labelA={labelA} labelB={labelB} colorA={colorA} colorB={colorB} />
+          <ReplacementSchedule rA={rA} rB={rB} labelA={labelA} labelB={labelB} colorA={colorA} colorB={colorB} />
+          {ctrlEnabled && mode === 'AB' && (
+            <ControlsTable rA={rA} rB={rB} ctrl={ctrl} PL={proj.PL} />
+          )}
+          <footer style={{ padding: '24px 28px', display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'baseline', gap: 18 }}>
+            <span style={{ fontFamily: T.MONO, fontSize: 9, color: T.MUTED, letterSpacing: '0.06em', lineHeight: 1.7 }}>
+              CALCULATIONS PER CRC LP METHODOLOGY · TCO INCL. CAPITAL, ENERGY, REPLACEMENTS · GWP INCL. EMBODIED + OPERATIONAL · GRID DECARBONISATION APPLIED LINEARLY · NPV USES DISCOUNT RATE NET OF INFLATION · NOT FOR CERTIFICATION
+            </span>
+            <span style={{ fontFamily: T.MONO, fontSize: 9, color: T.MUTED }}>© BUILT 2025</span>
+          </footer>
+        </section>
+      </main>
 
       <InfoModal open={infoOpen} onClose={() => setInfoOpen(false)} />
+      <GlossaryModal open={glossOpen} onClose={() => setGlossOpen(false)} />
     </div>
   );
 }

@@ -5,6 +5,24 @@ export const PRODUCT_A_DEFAULTS = { W: 28, FL: 3200, Q: 500, LMF: 0.90, LH: 5000
 export const PRODUCT_B_DEFAULTS = { ...BENCHMARK_DEFAULTS, Q: 500 };
 export const CTRL_DEFAULTS = { CSC: 0.75, CACC: 1.15, r: 0.08, LT: 10 };
 
+export const LUM_DEFAULTS = { W: 28, FL: 3200, Q: 500, GWP_CG: 18, GWP_EOL: 2.0, C_SI: 320 };
+export const L90_DEFAULTS = { LMF: 0.90, LH: 50000 };
+export const L70_DEFAULTS = { LMF: 0.70, LH: 50000 };
+
+export const GLOSSARY = [
+  ['LMF',          'Lumen Maintenance Factor — fraction of initial output retained at end of rated life. L90 = 0.90, L70 = 0.70.'],
+  ['L90 / L70',    'Two conventions for reporting luminaire life. L70 reports a longer life because it lets output drop further before "end of life".'],
+  ['Q_adj',        'Adjusted quantity = Q ÷ LMF. Compensates for reduced output at end of life by specifying more capacity up front.'],
+  ['EFF',          'Efficacy = Lumens ÷ Wattage (lm/W). Higher is better.'],
+  ['TCO',          'Total Cost of Ownership — initial capital + present value of energy + present value of replacements over the project life.'],
+  ['NPV',          'Net Present Value — future cash flow differences, discounted to today using the project discount rate. Positive NPV means Product A is preferable.'],
+  ['GWP',          'Global Warming Potential — total kgCO₂e over the project lifecycle. Embodied + operational.'],
+  ['CSC',          'Control Savings Coefficient — fraction of base energy retained when controls are active. 0.75 = 25 % saving.'],
+  ['CACC',         'Control Additional Cost Coefficient — multiplier on supply + install cost when controls are added.'],
+  ['Decarb factor', 'Percentage by which grid carbon is expected to fall over the decarbonisation timeframe (linear).'],
+  ['LMF dimming',   'Constant Lumen Output controls extend effective lifetime by dimming new luminaires down to match aged output.'],
+];
+
 export const BENCHMARKS = [
   { id: 'downlight', label: 'Downlight',  sub: 'Recessed ceiling, residential/commercial', W: 18, FL: 1600, LMF: 0.80, LH: 50000, GWP_CG: 15,  GWP_EOL: 1.5, C_SI: 180 },
   { id: 'linear',    label: 'Linear',     sub: 'Suspended/surface linear luminaire',        W: 35, FL: 3500, LMF: 0.75, LH: 50000, GWP_CG: 22,  GWP_EOL: 2.2, C_SI: 220 },

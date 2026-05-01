@@ -1,68 +1,30 @@
 import { T } from '../design/tokens.js';
 import { Modal } from '../components/atoms.jsx';
 
-const Section = ({ heading, children, last }) => (
-  <div style={{ marginBottom: last ? 0 : 20, paddingBottom: last ? 0 : 20, borderBottom: last ? 'none' : `1px solid ${T.c100}` }}>
-    <div style={{ fontFamily: T.font, fontWeight: 500, fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.c800, marginBottom: 10 }}>{heading}</div>
-    {children}
-  </div>
-);
+const ROWS = [
+  ['Energy',             'Annual energy = wattage × quantity × hours / 1000 (kWh).'],
+  ['Effective lifetime', 'Adjusted for the Lumen Maintenance Factor (LMF). LMF 0.7 means lifetime is reported until output drops to 70% of initial — a longer, more permissive measure than L90 (0.9).'],
+  ['Replacements',       'Number of replacements = floor((PL × hr/yr) / lifetime). Replacement costs use Supply + Install per fixture, escalated at the inflation rate.'],
+  ['Cost (TCO)',         'Initial capital + present value of energy + present value of replacements. NPV uses (discount − inflation) as the real rate.'],
+  ['Carbon (GWP)',       'Embodied (cradle-to-gate × replacements) + End-of-life × replacements + Operational (annual energy × grid factor, decayed linearly by decarb % over decarb years).'],
+  ['Controls',           'Apply CSC to operational energy, CACC to capital cost. Loan-finance ACC over LT years at rate r. Effective lifetime extends because dimming + occupancy reduce burn hours.'],
+];
 
 export const InfoModal = ({ open, onClose }) => (
-  <Modal open={open} onClose={onClose} title="About This Tool" width={620}>
-    <div style={{ fontFamily: T.font, fontWeight: 300, fontSize: 12, color: T.c800, lineHeight: 1.7 }}>
-
-      <Section heading="What this tool does">
-        This tool lets lighting professionals compare the environmental and financial performance
-        of luminaire products over a project's full lifecycle. Enter your project context and up to
-        two products — the tool produces a complete environmental and financial analysis, including
-        year-by-year carbon and cost profiles.
-      </Section>
-
-      <Section heading="How to use it">
-        <ol style={{ paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <li><strong>01 — Project:</strong> Set operational hours, project life, electricity rate, grid carbon intensity, and decarbonisation assumptions. These are shared across both products.</li>
-          <li><strong>02 — Product A:</strong> Enter your specified luminaire — wattage, lumens, quantity, LMF, rated lifetime, embodied carbon, and supply/install cost.</li>
-          <li><strong>03 — Product B:</strong> Enter a comparison luminaire, or use the Benchmark button to load a typical product type (Downlight, Linear, Cylinder, Troffer, Post Top).</li>
-          <li><strong>Calculate:</strong> All calculations run entirely in your browser. No data is sent to any server.</li>
-        </ol>
-      </Section>
-
-      <Section heading="The four analysis outputs">
-        <ul style={{ paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <li><strong>GWP / Emissions:</strong> Lifecycle carbon — embodied (manufacturing × replacement cycles) plus operational (energy × grid factor, adjusted for decarbonisation year by year). Shown as pie charts and a cumulative 15-year profile.</li>
-          <li><strong>L90 vs L70:</strong> Dedicated mode to evaluate a single luminaire at both maintenance standards. The LMF drives adjusted quantity (Q/LMF), lifetime, and replacement frequency — this mode makes those consequences explicit across all four dimensions.</li>
-          <li><strong>Controls:</strong> Three-scenario breakdown (base / with controls / with controls + maintenance dimming) showing energy, lifetime, and cost consequences of a control system investment, including loan financing and simple payback.</li>
-          <li><strong>Financial:</strong> Total cost of ownership decomposed into initial capital, present value of energy costs, and present value of replacements. NPV answers "what is the value of choosing Product A over B over the project life?"</li>
-        </ul>
-      </Section>
-
-      <Section heading="Key concepts">
-        <dl style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '6px 16px' }}>
-          {[
-            ['LMF', 'Luminaire Maintenance Factor — the fraction of initial lumens retained at rated end of life. L90 = 0.90; L70 = 0.70. The installed quantity is always Q/LMF to maintain minimum light levels at end of life.'],
-            ['Q/LMF', 'The equivalent system capacity. A lower LMF requires more installed capacity (whether via more luminaires or higher-output variants) to maintain design light levels at end of life.'],
-            ['GWP', 'Global Warming Potential in kgCO₂e — the standard unit for comparing the climate impact of different greenhouse gases.'],
-            ['NPV', 'Net Present Value — the present value of future cash flow differences, discounted at the project cost of capital. Positive NPV means Product A is financially preferable over the project life.'],
-            ['PV', 'Present Value — a future cost or saving expressed in today\'s money, discounted at the project discount rate.'],
-            ['Grid Decarb', 'The assumed reduction in grid carbon intensity over time as renewable energy penetrates the grid. Modelled as linear between the start value and a target floor.'],
-          ].map(([k, v]) => [
-            <dt key={`k-${k}`} style={{ fontWeight: 500, color: T.c800 }}>{k}</dt>,
-            <dd key={`v-${k}`} style={{ color: T.c400, fontWeight: 300 }}>{v}</dd>,
-          ])}
-        </dl>
-      </Section>
-
-      <Section heading="Methodology notes" last>
-        <ul style={{ paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 4, color: T.c400 }}>
-          <li>Maintenance dimming is modelled as linear — the average drive level over life is the midpoint between 100% and LMF.</li>
-          <li>Replacement costs are inflated at the general inflation rate. LED prices have historically fallen, so this is conservative.</li>
-          <li>Grid decarbonisation is modelled as linear. Actual trajectories may follow an S-curve.</li>
-          <li>Energy consumption is assumed constant across the luminaire's life (driver degradation is not modelled).</li>
-          <li>All monetary values in AUD. Intermediate calculations use 4 decimal places; display values are rounded to 2.</li>
-        </ul>
-      </Section>
-
+  <Modal open={open} onClose={onClose} title="Methodology — How calculations work" width={720}>
+    <div style={{ fontFamily: T.SANS, fontSize: 13, lineHeight: 1.65, color: T.INK }}>
+      <p style={{ margin: '0 0 12px' }}>
+        This tool models lifecycle <strong>cost</strong> and <strong>carbon</strong> for two lighting scenarios over a defined project life.
+      </p>
+      {ROWS.map(([t, d]) => (
+        <div key={t} style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 12, padding: '8px 0', borderTop: `1px solid ${T.SUBTLE}` }}>
+          <span style={{ fontFamily: T.MONO, fontSize: 10, fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase', color: T.MUTED }}>{t}</span>
+          <span>{d}</span>
+        </div>
+      ))}
+      <p style={{ margin: '14px 0 0', fontFamily: T.MONO, fontSize: 10, color: T.MUTED, lineHeight: 1.6 }}>
+        Defaults reflect typical AU non-residential lighting projects. All figures should be validated against project-specific quotes and EPDs before specification.
+      </p>
     </div>
   </Modal>
 );

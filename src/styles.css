@@ -1,37 +1,50 @@
 @font-face {
-  font-family: 'Roboto';
-  src: url('./fonts/Roboto-Variable.ttf') format('truetype');
-  font-weight: 100 900;
+  font-family: 'Space Grotesk';
+  src: url('./fonts/SpaceGrotesk-Variable.ttf') format('truetype-variations'),
+       url('./fonts/SpaceGrotesk-Variable.ttf') format('truetype');
+  font-weight: 300 700;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Roboto';
-  src: url('./fonts/Roboto-Italic-Variable.ttf') format('truetype');
-  font-weight: 100 900;
-  font-style: italic;
+  font-family: 'JetBrains Mono';
+  src: url('./fonts/JetBrainsMono-Variable.ttf') format('truetype-variations'),
+       url('./fonts/JetBrainsMono-Variable.ttf') format('truetype');
+  font-weight: 100 800;
+  font-style: normal;
   font-display: swap;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; }
 
-body {
-  font-family: 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-  font-weight: 300;
-  background: #F0EDE8;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #FAFAF7;
 }
 
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #F4F1ED; }
-::-webkit-scrollbar-thumb { background: #DCDCDC; }
-::-webkit-scrollbar-thumb:hover { background: #B8B8B8; }
+body {
+  font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  font-weight: 400;
+  color: #0A0A0A;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
 
-input[type=number]::-webkit-inner-spin-button,
-input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+button { font-family: inherit; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #F4F1E8; }
+::-webkit-scrollbar-thumb { background: #C8C4B6; }
+::-webkit-scrollbar-thumb:hover { background: #7A7872; }
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 input[type=number] { -moz-appearance: textfield; }
 
-input:focus { outline: 1px solid #1A1A1A; outline-offset: -1px; }
-button:focus-visible { outline: 2px solid #FFBD2E; outline-offset: 2px; }
+::selection { background: #D43A1A; color: #FAFAF7; }
+
+input:focus { outline: none; }
+button:focus-visible { outline: 2px solid #D43A1A; outline-offset: 2px; }

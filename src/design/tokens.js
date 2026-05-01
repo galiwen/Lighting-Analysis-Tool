@@ -1,10 +1,28 @@
 export const T = {
-  black:   '#0C0C0C', c900: '#111111', c800: '#1A1A1A', c700: '#242424',
-  c600:    '#2E2E2E', c500: '#3D3D3D', c400: '#595959', c300: '#8C8C8C',
-  c200:    '#B8B8B8', c100: '#DCDCDC', c050: '#F4F1ED',
-  white:   '#FFFFFF', warm: '#F0EDE8',
-  amber:   '#FFBD2E', amberD: '#AA7418', amberL: '#FFF4CC',
-  success: '#4A7C59', error: '#8B3A3A',
-  warnBg:  '#FFF4CC', warnBd: '#FFBD2E', warnTx: '#7A5010',
-  font:    "'Roboto', 'Helvetica Neue', Arial, sans-serif",
+  INK:      '#0A0A0A',
+  BG:       '#FAFAF7',
+  BG_PANEL: '#F4F1E8',
+  RULE:     '#1A1A1A',
+  MUTED:    '#7A7872',
+  SUBTLE:   '#E2DFD6',
+
+  BLUE:     '#3A5C8A',
+  BLUE_D:   '#0A1B33',
+  VERM:     '#D43A1A',
+  VERM_D:   '#5C1408',
+
+  ERROR:    '#B22222',
+  SUCCESS:  '#1F6B3F',
+  WARN_BG:  '#FFF6E0',
+  WARN_BD:  '#C9802A',
+
+  SANS:     "'Space Grotesk', system-ui, -apple-system, sans-serif",
+  MONO:     "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
 };
+
+export const micro = {
+  fontFamily: T.MONO, fontSize: 9, fontWeight: 400,
+  color: T.MUTED, textTransform: 'uppercase', letterSpacing: '0.06em',
+};
+
+export const microSm = { ...micro, fontSize: 8 };

@@ -1,29 +1,36 @@
-import { T } from '../design/tokens.js';
-import { Collapse } from '../components/atoms.jsx';
+import { useState } from 'react';
+import { T, micro } from '../design/tokens.js';
 import { NF } from './NumberField.jsx';
 
 export const ProjectPanel = ({ proj, setProj, validation }) => {
+  const [adv, setAdv] = useState(false);
   const s = k => v => setProj(p => ({ ...p, [k]: v }));
-  const pv = validation?.project || { errors: [], warnings: [] };
+  const errFor = frag => validation.errors.find(e => e.toLowerCase().includes(frag));
+  const warnFor = frag => validation.warnings.find(w => w.toLowerCase().includes(frag));
   return (
-    <div style={{ padding: 16, background: T.c050 }}>
-      <div style={{ fontFamily: T.font, fontWeight: 500, fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.c800, marginBottom: 8 }}>
-        01 — Project
+    <div style={{ padding: '16px 22px', borderRight: `1px solid ${T.SUBTLE}` }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+                    paddingBottom: 8, borderBottom: `1px solid ${T.INK}`, marginBottom: 4 }}>
+        <span style={{ fontFamily: T.SANS, fontSize: 12, fontWeight: 600 }}>01 · Project</span>
+        <span style={micro}>SHARED</span>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0 16px' }}>
-        <NF label="Op. Hours / Year" value={proj.OH} unit="hrs/yr" onChange={s('OH')} min={1} max={8760} tipKey="OH" error={pv.errors.find(e => e.includes('hours'))} />
-        <NF label="Project Life" value={proj.PL} unit="yrs" onChange={s('PL')} min={1} max={50} tipKey="PL" />
-        <NF label="Electricity Rate" value={proj.ER} unit="$/kWh" onChange={s('ER')} step={0.01} tipKey="ER" warn={pv.warnings.find(w => w.includes('rate'))} />
-        <NF label="Grid Carbon Factor" value={proj.GF_0} unit="kg/kWh" onChange={s('GF_0')} step={0.01} tipKey="GF_0" error={pv.errors.find(e => e.includes('Grid Carbon'))} />
-        <NF label="Grid Decarb %" value={Math.round(proj.GD * 100)} unit="%" onChange={v => s('GD')(v / 100)} min={0} max={100} step={1} tipKey="GD" />
-        <NF label="Over" value={proj.GDT} unit="yrs" onChange={s('GDT')} min={1} max={50} tipKey="GDT" />
-      </div>
-      <Collapse title="Advanced" defaultOpen={false}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0 16px' }}>
-          <NF label="Inflation Rate" value={Math.round(proj.i * 1000) / 10} unit="%" onChange={v => s('i')(v / 100)} step={0.1} tipKey="i" hint="General price index" />
-          <NF label="Discount Rate" value={Math.round(proj.d * 1000) / 10} unit="%" onChange={v => s('d')(v / 100)} step={0.1} tipKey="d" hint="Cost of capital" warn={pv.warnings.find(w => w.includes('Discount'))} />
+      <NF label="Operating hours" unit="hr/yr" value={proj.OH} onChange={s('OH')} min={1} max={8760} tipKey="OH" error={errFor('hours')} />
+      <NF label="Project life"    unit="yr"    value={proj.PL} onChange={s('PL')} min={1} max={50}  tipKey="PL" error={errFor('project life')} />
+      <NF label="Electricity rate" unit="$/kWh" value={proj.ER} onChange={s('ER')} step={0.01} tipKey="ER" warn={warnFor('rate')} />
+      <NF label="Grid carbon"     unit="kg/kWh" value={proj.GF_0} onChange={s('GF_0')} step={0.01} tipKey="GF_0" error={errFor('grid carbon')} />
+      <NF label="Decarb factor"   unit="%" value={Math.round(proj.GD * 100)} onChange={v => s('GD')(v / 100)} min={0} max={100} step={1} tipKey="GD" />
+      <NF label="Decarb over"     unit="yr" value={proj.GDT} onChange={s('GDT')} min={1} max={50} tipKey="GDT" />
+      <button onClick={() => setAdv(a => !a)} style={{
+        marginTop: 8, padding: '4px 0', background: 'none', border: 'none', cursor: 'pointer',
+        fontFamily: T.MONO, fontSize: 9, color: T.MUTED,
+        textTransform: 'uppercase', letterSpacing: '0.08em',
+      }}>{adv ? '▾ ADVANCED' : '▸ ADVANCED'}</button>
+      {adv && (
+        <div>
+          <NF label="Inflation"     unit="%" value={Math.round(proj.i * 1000) / 10} onChange={v => s('i')(v / 100)} step={0.1} tipKey="i" />
+          <NF label="Discount rate" unit="%" value={Math.round(proj.d * 1000) / 10} onChange={v => s('d')(v / 100)} step={0.1} tipKey="d" warn={warnFor('discount')} />
         </div>
-      </Collapse>
+      )}
     </div>
   );
 };
