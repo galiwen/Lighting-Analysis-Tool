@@ -46,6 +46,76 @@ When the **No Controls** chip is active in section 02, the four CTRL fields are 
 
 **Results.** Verdict ribbon, KPI grid, carbon breakdown bars (embodied = darker shade, operational = brighter shade of the same hue), section 06 NPV-discounted cumulative cost chart, line items, replacement schedule, and section 09 controls scenarios (Base / +Controls / +Controls + Dim) when controls are enabled.
 
+## Design language
+
+The interface is editorial: a sans-serif body paired with strictly monospaced metadata, thin 1px rules instead of cards or shadows, and a small palette where every color carries a defined role. The tokens, fonts, and component patterns below all live in `src/design/tokens.js` and `src/components/atoms.jsx` — anything new should re-use them rather than introduce parallel styling.
+
+### Typography
+
+- **Space Grotesk** (variable, 300–700) — body text, panel titles, modal headings, NumberField input values. Used via `T.SANS`.
+- **JetBrains Mono** (variable, 100–800) — labels, units, micro-tags, axis labels, button text, the × CLEAR affordance, the modal close button. Used via `T.MONO`.
+- Both fonts are bundled relatively as `./fonts/*.ttf` from the `@font-face` rules in `src/styles.css`, so they ship with the build and the bundle is portable.
+- Convention: uppercase mono with `0.06–0.08em` letter-spacing carries every interaction affordance and metadata label. Sans carries content. The exported `micro` (mono 9px uppercase, `T.MUTED`) and `microSm` (8px variant) helpers cover most metadata callsites.
+
+### Color tokens
+
+Sourced verbatim from `src/design/tokens.js`:
+
+| Token | Hex | Role |
+|---|---|---|
+| `INK` | `#0A0A0A` | Primary text and structural rules |
+| `BG` | `#FAFAF7` | Page background |
+| `BG_PANEL` | `#F4F1E8` | Modal headers, verdict ribbon |
+| `RULE` | `#1A1A1A` | Heavy horizontal divider variant |
+| `MUTED` | `#7A7872` | Secondary text, micro labels, axis text |
+| `SUBTLE` | `#E2DFD6` | Field borders, light gridlines, column rules |
+| `BLUE` | `#6F00FF` | Product A primary (PROPOSED) |
+| `BLUE_D` | `#3D008C` | Product A embodied / darker shade |
+| `VERM` | `#FF5900` | Product B primary (BENCHMARK) |
+| `VERM_D` | `#8A3000` | Product B embodied / darker shade |
+| `ERROR` | `#B22222` | Validation error (border, icon, text) |
+| `SUCCESS` | `#1F6B3F` | Success indicator |
+| `WARN_BG` / `WARN_BD` | `#FFF6E0` / `#C9802A` | Warning banner background / accent |
+| `SANS` / `MONO` | — | Font-stack constants |
+
+### Color semantics
+
+- **Product A** uses the BLUE family with accent label `PROPOSED`.
+- **Product B** uses the VERM family with accent label `BENCHMARK`.
+- The `_D` suffix denotes the darker shade of a product's hue and is reserved for **embodied carbon** treatment (manufacturing + end-of-life) wherever a chart or KPI separates the two carbon sources.
+- Chart convention: bright = operational (electricity over project life); dark = embodied. Same hue, two depths — one product reads as one visual unit.
+
+### Layout grammar
+
+- Page structure: header (title + Info / Glossary / Methodology buttons) → optional validation banner → 4-column input row → stacked result sections → footer disclaimer.
+- Max content width is 1320px, centered.
+- Sections are numbered: `01 · Project`, `02 · Controls`, `03 · Product A`, `04 · Product B`, `05 · KPIs`, `06 · NPV chart`, `09 · Controls scenarios`. The number renders in `T.MUTED`, separated from the title by a bullet.
+- Vertical column dividers are `1px solid T.SUBTLE`. Horizontal section rules are `1px solid T.INK` (or `T.RULE` where a slightly lighter bar reads better).
+- Every input panel follows the same three-step vertical rhythm:
+  1. Section header — title on the left, a `micro` tag on the right (`SHARED` / `PROJECT-LEVEL` / `PRODUCT-LEVEL`).
+  2. Preset chip row plus `× CLEAR`, separated below by a thin rule.
+  3. Stacked `NumberField` rows.
+
+### Component vocabulary
+
+- **Preset chip** — small rectangular button (`3px × 8px` padding), MONO 9px uppercase with 0.06em spacing. Active: filled `T.INK` background with `T.BG` text. Inactive: transparent with `T.SUBTLE` border and `T.MUTED` text.
+- **× CLEAR** — borderless trailing button at `marginLeft: auto` in the chip row. MONO 9px uppercase. Color is `T.VERM` when something is dirty, `T.SUBTLE` when there is nothing to clear.
+- **Section micro-tag** — `micro` style, right-aligned in the panel header. Communicates scope (`SHARED` / `PROJECT-LEVEL` / `PRODUCT-LEVEL`) without competing with the title.
+- **NumberField (`NF`)** — micro label on top with an optional `Tip` "i" icon, mono 13px right-aligned input, optional unit suffix. States: error (`T.ERROR` border + icon + message), warn (`T.WARN_BD`), focus (border darkens to `T.INK`), hint below in `microSm`. Numeric value color follows the panel `accent` (BLUE / VERM / INK).
+- **Modal** (`src/components/atoms.jsx`) — fixed centered, default 620px width (configurable), 1px `T.INK` border, `T.BG_PANEL` header bar with title (SANS bold) + "✕ CLOSE" button (INK bg, BG text, MONO 10px), 0.65 dark backdrop. Used by the Welcome, Glossary, and Methodology dialogs.
+- **SectionHead** (`src/components/atoms.jsx`) — shared header for results sections: `idx · title` on the left, optional uppercase `micro` meta on the right, `borderBottom 1px T.INK`.
+- **Verdict ribbon** — full-width strip with `T.BG_PANEL` background. `[ VERDICT ]` micro tag on the left, winning product name colored in its accent, NPV value mono right-aligned.
+- **Tip** — small circular "i" icon (13px, `T.SUBTLE` border) that reveals a dark tooltip on hover. Sits inline next to NF labels for unit/definition help.
+
+### Visual conventions worth preserving
+
+- **Editorial pairing.** Sans for content, mono for metadata and affordances. Avoid icon-driven UI; the type does the work.
+- **Thin rules over cards.** All structural separation is `1px solid` in `T.INK`, `T.RULE`, or `T.SUBTLE`. No box shadows except on the modal/tooltip layer.
+- **Chip row → divider → fields** rhythm repeats across all four input panels for visual continuity.
+- **Charts** use `T.SUBTLE` gridlines, `T.MUTED` axis labels, and `T.INK` axis lines — hierarchy keeps data foregrounded. Line widths 2.5px with terminal end-of-curve circles.
+- **Carbon bars** are two-segment stacked: embodied (`_D`, darker) on the left, operational (bright) on the right, with a small swatch legend underneath.
+- **Validation banners** distinguish severity by color family: error in red (`T.ERROR`), warn in amber (`T.WARN_BD` on `T.WARN_BG`). Icon + short prefix + message.
+
 ## Project layout
 
 ```
