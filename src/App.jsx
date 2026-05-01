@@ -3,13 +3,11 @@ import { T, micro } from './design/tokens.js';
 import { runProductAnalysis, validateInputs } from './calc/engine.js';
 import {
   PROJECT_DEFAULTS, PRODUCT_A_DEFAULTS, PRODUCT_B_DEFAULTS, CTRL_DEFAULTS,
-  LUM_DEFAULTS, L90_DEFAULTS, L70_DEFAULTS,
-  PRODUCT_A_PRESETS, BENCHMARKS,
+  PRODUCT_A_PRESETS, BENCHMARKS, PROJECT_PRESETS,
 } from './inputs/defaults.js';
 import { ProjectPanel } from './inputs/ProjectPanel.jsx';
 import { ProductPanel } from './inputs/ProductPanel.jsx';
 import { ControlsPanel } from './inputs/ControlsPanel.jsx';
-import { L90L70InputPanel } from './inputs/L90L70InputPanel.jsx';
 import { VerdictRibbon } from './results/VerdictRibbon.jsx';
 import { KPIGrid } from './results/KPIGrid.jsx';
 import { CarbonBars } from './results/CarbonBars.jsx';
@@ -20,6 +18,7 @@ import { ControlsTable } from './results/ControlsTable.jsx';
 import { SectionHead } from './components/atoms.jsx';
 import { InfoModal } from './modals/InfoModal.jsx';
 import { GlossaryModal } from './modals/GlossaryModal.jsx';
+import { WelcomeModal } from './modals/WelcomeModal.jsx';
 
 const MAX_W = 1320;
 
@@ -30,6 +29,7 @@ const linkBtn = {
 };
 
 const sliceEqual = (a, b, keys) => keys.every(k => a[k] === b[k]);
+const PROJ_KEYS = ['OH', 'PL', 'ER', 'GF_0', 'GD', 'GDT', 'i', 'd'];
 const PROD_KEYS = ['W', 'FL', 'Q', 'LMF', 'LH', 'GWP_CG', 'GWP_EOL', 'C_SI'];
 const CTRL_KEYS = ['CSC', 'CACC', 'r', 'LT'];
 
@@ -56,22 +56,24 @@ const promote = (r) => {
 };
 
 export default function App() {
-  const [mode, setMode] = useState('AB');
   const [proj, setProj] = useState({ ...PROJECT_DEFAULTS });
   const [prodA, setProdA] = useState({ ...PRODUCT_A_DEFAULTS });
   const [prodB, setProdB] = useState({ ...PRODUCT_B_DEFAULTS });
-  const [lum, setLum] = useState({ ...LUM_DEFAULTS });
-  const [l90, setL90] = useState({ ...L90_DEFAULTS });
-  const [l70, setL70] = useState({ ...L70_DEFAULTS });
   const [ctrl, setCtrl] = useState({ ...CTRL_DEFAULTS });
 
+  const [presetProj, setPresetProj] = useState(null);
   const [presetA, setPresetA] = useState(null);
   const [presetB, setPresetB] = useState(null);
   const [presetCtrl, setPresetCtrl] = useState(null);
 
   const [infoOpen, setInfoOpen] = useState(false);
   const [glossOpen, setGlossOpen] = useState(false);
+  const [welcomeOpen, setWelcomeOpen] = useState(true);
 
+  const handlePresetProj = (p) => {
+    setProj(prev => ({ ...prev, OH: p.OH, PL: p.PL, ER: p.ER }));
+    setPresetProj(p.id);
+  };
   const handlePresetA = (b) => {
     setProdA(p => ({ ...p, W: b.W, FL: b.FL, LMF: b.LMF, LH: b.LH, GWP_CG: b.GWP_CG, GWP_EOL: b.GWP_EOL, C_SI: b.C_SI }));
     setPresetA(b.id);
@@ -85,51 +87,40 @@ export default function App() {
     setPresetCtrl(p.id);
   };
 
+  const handleClearProj = () => { setProj({ ...PROJECT_DEFAULTS }); setPresetProj(null); };
   const handleClearA = () => { setProdA({ ...PRODUCT_A_DEFAULTS }); setPresetA(null); };
   const handleClearB = () => { setProdB({ ...PRODUCT_B_DEFAULTS }); setPresetB(null); };
   const handleClearCtrl = () => { setCtrl({ ...CTRL_DEFAULTS }); setPresetCtrl(null); };
 
+  const canClearProj = !!presetProj || !sliceEqual(proj, PROJECT_DEFAULTS, PROJ_KEYS);
   const canClearA = !!presetA || !sliceEqual(prodA, PRODUCT_A_DEFAULTS, PROD_KEYS);
   const canClearB = !!presetB || !sliceEqual(prodB, PRODUCT_B_DEFAULTS, PROD_KEYS);
   const canClearCtrl = !!presetCtrl || !sliceEqual(ctrl, CTRL_DEFAULTS, CTRL_KEYS);
 
-  const switchToL90 = () => setMode('L90L70');
-
   const validation = useMemo(() => {
-    if (mode === 'AB') {
-      const p = validateInputs(proj, 'Project');
-      const a = validateInputs(prodA, 'Product A');
-      const b = validateInputs(prodB, 'Product B');
-      return { errors: [...p.errors, ...a.errors, ...b.errors], warnings: [...p.warnings, ...a.warnings, ...b.warnings] };
-    }
-    const lumA = { ...lum, ...l90 };
-    const lumB = { ...lum, ...l70 };
     const p = validateInputs(proj, 'Project');
-    const a = validateInputs(lumA, 'L90');
-    const b = validateInputs(lumB, 'L70');
+    const a = validateInputs(prodA, 'Product A');
+    const b = validateInputs(prodB, 'Product B');
     return { errors: [...p.errors, ...a.errors, ...b.errors], warnings: [...p.warnings, ...a.warnings, ...b.warnings] };
-  }, [mode, proj, prodA, prodB, lum, l90, l70]);
+  }, [proj, prodA, prodB]);
 
   const hasErrors = validation.errors.length > 0;
 
-  const { rA, rB, labelA, labelB } = useMemo(() => {
-    if (hasErrors) return { rA: null, rB: null, labelA: 'A', labelB: 'B' };
+  const labelA = 'A';
+  const labelB = 'B';
+  const controlsEnabled = presetCtrl !== 'none';
+
+  const { rA, rB } = useMemo(() => {
+    if (hasErrors) return { rA: null, rB: null };
     try {
-      if (mode === 'AB') {
-        const rawA = runProductAnalysis(proj, prodA, true, ctrl);
-        const qB = { ...prodB, Q: prodB.Q || prodA.Q };
-        const rawB = runProductAnalysis(proj, qB, true, ctrl);
-        return { rA: promote(rawA), rB: promote(rawB), labelA: 'A', labelB: 'B' };
-      }
-      const lumA = { ...lum, ...l90 };
-      const lumB = { ...lum, ...l70 };
-      const rA = runProductAnalysis(proj, lumA, false, null);
-      const rB = runProductAnalysis(proj, lumB, false, null);
-      return { rA, rB, labelA: 'L90', labelB: 'L70' };
+      const rawA = runProductAnalysis(proj, prodA, controlsEnabled, ctrl);
+      const qB = { ...prodB, Q: prodB.Q || prodA.Q };
+      const rawB = runProductAnalysis(proj, qB, controlsEnabled, ctrl);
+      return { rA: promote(rawA), rB: promote(rawB) };
     } catch {
-      return { rA: null, rB: null, labelA: 'A', labelB: 'B' };
+      return { rA: null, rB: null };
     }
-  }, [hasErrors, mode, proj, prodA, prodB, lum, l90, l70, ctrl]);
+  }, [hasErrors, proj, prodA, prodB, ctrl, controlsEnabled]);
 
   const npv = (rA && rB) ? rB.TC_base - rA.TC_base : 0;
 
@@ -142,33 +133,20 @@ export default function App() {
       <header style={{ borderBottom: `1px solid ${T.INK}`, background: T.BG }}>
         <div style={{
           maxWidth: MAX_W, margin: '0 auto',
-          display: 'grid', gridTemplateColumns: 'auto 1fr auto auto', gap: 18, alignItems: 'center',
+          display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 18, alignItems: 'center',
           padding: '14px 28px',
         }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
-            <span style={{ fontFamily: T.MONO, fontSize: 9, fontWeight: 500, color: T.MUTED, letterSpacing: '0.12em' }}>
-              BLT.AU · DEMO
-            </span>
             <span style={{ fontFamily: T.SANS, fontSize: 18, fontWeight: 600, letterSpacing: '-0.01em' }}>
-              Lighting Audit
+              Lighting Carbon And Cost Comparison Tool
             </span>
             <span style={{ fontFamily: T.MONO, fontSize: 9, color: T.MUTED, letterSpacing: '0.08em' }}>
-              v0.5 · CRC LP · BETA
+              v0.5 - Demo - Built by Dimitrios Tsiokaras
             </span>
           </div>
           <div />
-          <div style={{ display: 'flex', border: `1px solid ${T.INK}` }}>
-            {[{ id: 'AB', l: 'A vs B' }, { id: 'L90L70', l: 'L90 ↔ L70' }].map(m => (
-              <button key={m.id} onClick={() => setMode(m.id)} style={{
-                padding: '6px 14px', border: 'none', cursor: 'pointer',
-                background: mode === m.id ? T.INK : 'transparent',
-                color: mode === m.id ? T.BG : T.INK,
-                fontFamily: T.MONO, fontSize: 10, fontWeight: 500,
-                letterSpacing: '0.08em', textTransform: 'uppercase',
-              }}>{m.l}</button>
-            ))}
-          </div>
           <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={() => setWelcomeOpen(true)} style={linkBtn}>Info</button>
             <button onClick={() => setGlossOpen(true)} style={linkBtn}>Glossary</button>
             <button onClick={() => setInfoOpen(true)} style={linkBtn}>Methodology</button>
           </div>
@@ -199,42 +177,36 @@ export default function App() {
       <main style={{ maxWidth: MAX_W, margin: '0 auto' }}>
 
         <section style={{ borderBottom: `1px solid ${T.INK}` }}>
-          {mode === 'AB' ? (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.4fr 1.4fr' }}>
-              <ProjectPanel proj={proj} setProj={setProj} validation={validation} />
-              <ControlsPanel
-                ctrl={ctrl} setCtrl={setCtrl}
-                presetId={presetCtrl} onPresetSelect={handlePresetCtrl}
-                onClear={handleClearCtrl} canClear={canClearCtrl}
-              />
-              <ProductPanel
-                num="A" prod={prodA} setProd={setProdA}
-                accent={T.BLUE} accentLabel="PROPOSED"
-                validation={validation}
-                presets={PRODUCT_A_PRESETS}
-                selectedPreset={presetA} onPresetSelect={handlePresetA}
-                onClear={handleClearA} canClear={canClearA}
-                onSwitchMode={switchToL90}
-              />
-              <ProductPanel
-                num="B" prod={prodB} setProd={setProdB}
-                accent={T.VERM} accentLabel="BENCHMARK"
-                validation={validation}
-                presets={BENCHMARKS}
-                selectedPreset={presetB} onPresetSelect={handlePresetB}
-                onClear={handleClearB} canClear={canClearB}
-                onSwitchMode={switchToL90}
-                last
-              />
-            </div>
-          ) : (
-            <L90L70InputPanel
-              proj={proj} setProj={setProj}
-              lum={lum} setLum={setLum}
-              l90={l90} setL90={setL90}
-              l70={l70} setL70={setL70}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)' }}>
+            <ProjectPanel
+              proj={proj} setProj={setProj} validation={validation}
+              presets={PROJECT_PRESETS}
+              selectedPreset={presetProj} onPresetSelect={handlePresetProj}
+              onClear={handleClearProj} canClear={canClearProj}
             />
-          )}
+            <ControlsPanel
+              ctrl={ctrl} setCtrl={setCtrl}
+              presetId={presetCtrl} onPresetSelect={handlePresetCtrl}
+              onClear={handleClearCtrl} canClear={canClearCtrl}
+            />
+            <ProductPanel
+              num="A" prod={prodA} setProd={setProdA}
+              accent={T.BLUE} accentLabel="PROPOSED"
+              validation={validation}
+              presets={PRODUCT_A_PRESETS}
+              selectedPreset={presetA} onPresetSelect={handlePresetA}
+              onClear={handleClearA} canClear={canClearA}
+            />
+            <ProductPanel
+              num="B" prod={prodB} setProd={setProdB}
+              accent={T.VERM} accentLabel="BENCHMARK"
+              validation={validation}
+              presets={BENCHMARKS}
+              selectedPreset={presetB} onPresetSelect={handlePresetB}
+              onClear={handleClearB} canClear={canClearB}
+              last
+            />
+          </div>
         </section>
 
         <section>
@@ -246,9 +218,7 @@ export default function App() {
           <CumulativeCostChart rA={rA} rB={rB} PL={proj.PL} labelA={labelA} labelB={labelB} colorA={colorA} colorB={colorB} />
           <LineItems rA={rA} rB={rB} PL={proj.PL} labelA={labelA} labelB={labelB} colorA={colorA} colorB={colorB} />
           <ReplacementSchedule rA={rA} rB={rB} labelA={labelA} labelB={labelB} colorA={colorA} colorB={colorB} />
-          {mode === 'AB' && (
-            <ControlsTable rA={rA} rB={rB} ctrl={ctrl} PL={proj.PL} />
-          )}
+          {controlsEnabled && <ControlsTable rA={rA} ctrl={ctrl} PL={proj.PL} />}
           <footer style={{ padding: '24px 28px', display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'baseline', gap: 18 }}>
             <span style={{ fontFamily: T.MONO, fontSize: 9, color: T.MUTED, letterSpacing: '0.06em', lineHeight: 1.7 }}>
               CALCULATIONS PER CRC LP METHODOLOGY · TCO INCL. CAPITAL, ENERGY, REPLACEMENTS · GWP INCL. EMBODIED + OPERATIONAL · GRID DECARBONISATION APPLIED LINEARLY · NPV USES DISCOUNT RATE NET OF INFLATION · NOT FOR CERTIFICATION
@@ -260,6 +230,7 @@ export default function App() {
 
       <InfoModal open={infoOpen} onClose={() => setInfoOpen(false)} />
       <GlossaryModal open={glossOpen} onClose={() => setGlossOpen(false)} />
+      <WelcomeModal open={welcomeOpen} onClose={() => setWelcomeOpen(false)} />
     </div>
   );
 }

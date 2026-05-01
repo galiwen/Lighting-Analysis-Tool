@@ -35,10 +35,16 @@ export const ControlsPanel = ({ ctrl, setCtrl, presetId, onPresetSelect, onClear
         }}>× CLEAR</button>
       </div>
 
-      <NF label="Savings coeff (CSC)" value={ctrl.CSC} onChange={s('CSC')} step={0.01} min={0.01} max={1} tipKey="CSC" hint="0.75 → 25% saving" />
-      <NF label="Cost mult (CACC)"    value={ctrl.CACC} onChange={s('CACC')} step={0.05} min={1} max={2} tipKey="CACC" />
-      <NF label="Loan interest" unit="%" value={Math.round(ctrl.r * 1000) / 10} onChange={v => s('r')(v / 100)} step={0.1} min={0} max={30} tipKey="r" />
-      <NF label="Loan term"     unit="yr" value={ctrl.LT} onChange={s('LT')} step={1} min={1} max={30} tipKey="LT" />
+      <div style={{
+        opacity: presetId === 'none' ? 0.4 : 1,
+        pointerEvents: presetId === 'none' ? 'none' : 'auto',
+        transition: 'opacity 120ms ease',
+      }}>
+        <NF label="Savings coeff (CSC)" value={ctrl.CSC} onChange={s('CSC')} step={0.01} min={0.01} max={1} tipKey="CSC" hint="0.75 → 25% saving" />
+        <NF label="Cost mult (CACC)"    value={ctrl.CACC} onChange={s('CACC')} step={0.05} min={1} max={2} tipKey="CACC" />
+        <NF label="Loan interest" unit="%" value={Math.round(ctrl.r * 1000) / 10} onChange={v => s('r')(v / 100)} step={0.1} min={0} max={30} tipKey="r" />
+        <NF label="Loan term"     unit="yr" value={ctrl.LT} onChange={s('LT')} step={1} min={1} max={30} tipKey="LT" />
+      </div>
     </div>
   );
 };

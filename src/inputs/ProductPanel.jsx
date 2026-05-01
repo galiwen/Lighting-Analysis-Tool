@@ -7,7 +7,6 @@ export const ProductPanel = ({
   validation,
   presets, selectedPreset, onPresetSelect,
   onClear, canClear,
-  onSwitchMode,
   last,
 }) => {
   const s = k => v => setProd(p => ({ ...p, [k]: v }));
@@ -54,8 +53,7 @@ export const ProductPanel = ({
       <NF label="Lumens"      unit="lm" value={prod.FL}  onChange={s('FL')}  min={0} tipKey="FL"  accent={accent} />
       <NF label="Quantity"              value={prod.Q}   onChange={s('Q')}   min={1} step={1} tipKey="Q" accent={accent} error={errFor('quantity')} />
       <NF label="LMF"                   value={prod.LMF} onChange={s('LMF')} step={0.01} min={0.01} max={1} tipKey="LMF" accent={accent}
-          warn={warnFor('lmf')} error={errFor('lmf')}
-          link={onSwitchMode ? 'L90 vs L70 →' : null} linkAction={onSwitchMode} />
+          warn={warnFor('lmf')} error={errFor('lmf')} />
       <NF label="Lifetime"    unit="hr" value={prod.LH}      onChange={s('LH')}      min={0} tipKey="LH"     accent={accent} />
       <NF label="Embodied C"  unit="kg/ea" value={prod.GWP_CG}  onChange={s('GWP_CG')}  min={0} step={0.5} tipKey="GWP_CG" accent={accent} />
       <NF label="End of life" unit="kg/ea" value={prod.GWP_EOL} onChange={s('GWP_EOL')} min={0} step={0.1} tipKey="GWP_EOL" accent={accent} />

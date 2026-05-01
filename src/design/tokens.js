@@ -6,10 +6,10 @@ export const T = {
   MUTED:    '#7A7872',
   SUBTLE:   '#E2DFD6',
 
-  BLUE:     '#3A5C8A',
-  BLUE_D:   '#0A1B33',
-  VERM:     '#D43A1A',
-  VERM_D:   '#5C1408',
+  BLUE:     '#6F00FF',
+  BLUE_D:   '#3D008C',
+  VERM:     '#FF5900',
+  VERM_D:   '#8A3000',
 
   ERROR:    '#B22222',
   SUCCESS:  '#1F6B3F',

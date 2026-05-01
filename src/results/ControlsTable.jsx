@@ -7,35 +7,34 @@ const pctDelta = (a, b) => {
   return (p >= 0 ? '+' : '') + p.toFixed(1) + '%';
 };
 
-export const ControlsTable = ({ rA, rB, ctrl, PL: _PL }) => {
-  if (!rA?.ctrlResults || !rB?.ctrlResults) return null;
+export const ControlsTable = ({ rA, ctrl, PL: _PL }) => {
+  if (!rA?.ctrlResults) return null;
   const cr = rA.ctrlResults;
-  const crB = rB.ctrlResults;
   const pb = cr.simple_payback;
   const inLoan = pb <= ctrl.LT;
 
   const scenarios = [
     {
       lab: 'Base case',
-      eA: cr.base.E,        eB: crB.base.E,
+      eA: cr.base.E,
       LA: cr.base.L,        nA: cr.base.N_replace,
-      tcA: cr.base.TC,      tcB: crB.base.TC,
+      tcA: cr.base.TC,
       embA: cr.base.gwp.embodied, opA: cr.base.gwp.operational, gA: cr.base.gwp.total,
       loan: '—',
     },
     {
       lab: '+ Controls',
-      eA: cr.E_control,           eB: crB.E_control,
+      eA: cr.E_control,
       LA: cr.L_control,           nA: cr.N_replace_ctrl,
-      tcA: cr.TC_control,         tcB: crB.TC_control,
+      tcA: cr.TC_control,
       embA: cr.gwpCtrl.embodied,  opA: cr.gwpCtrl.operational,  gA: cr.gwpCtrl.total,
       loan: `${fmt.aud(cr.ALP)}/yr`,
     },
     {
       lab: '+ Controls + Dim',
-      eA: cr.E_control_maint,         eB: crB.E_control_maint,
+      eA: cr.E_control_maint,
       LA: cr.L_control_maint,         nA: cr.N_replace_ctrl_maint,
-      tcA: cr.TC_control_maint,       tcB: crB.TC_control_maint,
+      tcA: cr.TC_control_maint,
       embA: cr.gwpCtrlMaint.embodied, opA: cr.gwpCtrlMaint.operational, gA: cr.gwpCtrlMaint.total,
       loan: `${fmt.aud(cr.ALP)}/yr`,
     },
@@ -57,11 +56,10 @@ export const ControlsTable = ({ rA, rB, ctrl, PL: _PL }) => {
   ];
 
   const headers = [
-    'Scenario','Energy A','Energy B','Lifetime A','Repls A','TCO A','TCO B','Embodied A','Operational A','GWP A','Loan/yr',
+    'Scenario','Energy A','Lifetime A','Repls A','TCO A','Embodied A','Operational A','GWP A','Loan/yr',
   ];
-  const aIdx = new Set([1, 3, 4, 5, 7, 8, 9]);
-  const bIdx = new Set([2, 6]);
-  const headerColor = i => aIdx.has(i) ? T.BLUE : bIdx.has(i) ? T.VERM : T.INK;
+  const aIdx = new Set([1, 2, 3, 4, 5, 6, 7]);
+  const headerColor = i => aIdx.has(i) ? T.BLUE : T.INK;
 
   const numStyle = (color, sz = 11) => ({ fontFamily: T.MONO, fontSize: sz, padding: '6px 4px', textAlign: 'right', color });
 
@@ -134,11 +132,9 @@ export const ControlsTable = ({ rA, rB, ctrl, PL: _PL }) => {
               <tr key={sc.lab} style={{ borderBottom: `1px solid ${T.SUBTLE}` }}>
                 <td style={{ fontFamily: T.SANS, fontSize: 12, padding: '6px 4px' }}>{sc.lab}</td>
                 <td style={numStyle(T.BLUE)}>{fmt.kwh(sc.eA)}</td>
-                <td style={numStyle(T.VERM)}>{fmt.kwh(sc.eB)}</td>
                 <td style={numStyle(T.BLUE)}>{fmt.yr(sc.LA)}</td>
                 <td style={numStyle(T.BLUE)}>{sc.nA}×</td>
                 <td style={numStyle(T.BLUE)}>{fmt.aud(sc.tcA)}</td>
-                <td style={numStyle(T.VERM)}>{fmt.aud(sc.tcB)}</td>
                 <td style={numStyle(T.BLUE)}>{fmt.co2(sc.embA)}</td>
                 <td style={numStyle(T.BLUE)}>{fmt.co2(sc.opA)}</td>
                 <td style={numStyle(T.BLUE)}>{fmt.co2(sc.gA)}</td>

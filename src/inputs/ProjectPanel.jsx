@@ -2,7 +2,11 @@ import { useState } from 'react';
 import { T, micro } from '../design/tokens.js';
 import { NF } from './NumberField.jsx';
 
-export const ProjectPanel = ({ proj, setProj, validation }) => {
+export const ProjectPanel = ({
+  proj, setProj, validation,
+  presets, selectedPreset, onPresetSelect,
+  onClear, canClear,
+}) => {
   const [adv, setAdv] = useState(false);
   const s = k => v => setProj(p => ({ ...p, [k]: v }));
   const errFor = frag => validation.errors.find(e => e.toLowerCase().includes(frag));
@@ -14,6 +18,32 @@ export const ProjectPanel = ({ proj, setProj, validation }) => {
         <span style={{ fontFamily: T.SANS, fontSize: 12, fontWeight: 600 }}>01 · Project</span>
         <span style={micro}>SHARED</span>
       </div>
+
+      {presets && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '8px 0', borderBottom: `1px solid ${T.SUBTLE}`, alignItems: 'center' }}>
+          {presets.map(p => (
+            <button key={p.id} onClick={() => onPresetSelect(p)} title={p.sub} style={{
+              padding: '3px 8px',
+              background: selectedPreset === p.id ? T.INK : 'transparent',
+              color: selectedPreset === p.id ? T.BG : T.MUTED,
+              border: `1px solid ${selectedPreset === p.id ? T.INK : T.SUBTLE}`,
+              fontFamily: T.MONO, fontSize: 9, fontWeight: 500,
+              letterSpacing: '0.06em', textTransform: 'uppercase',
+              cursor: 'pointer',
+            }}>{p.label}</button>
+          ))}
+          <button onClick={onClear} disabled={!canClear} style={{
+            marginLeft: 'auto',
+            padding: '3px 8px', background: 'transparent',
+            border: 'none',
+            fontFamily: T.MONO, fontSize: 9, fontWeight: 500,
+            letterSpacing: '0.06em', textTransform: 'uppercase',
+            color: canClear ? T.INK : T.SUBTLE,
+            cursor: canClear ? 'pointer' : 'default',
+          }}>× CLEAR</button>
+        </div>
+      )}
+
       <NF label="Operating hours" unit="hr/yr" value={proj.OH} onChange={s('OH')} min={1} max={8760} tipKey="OH" error={errFor('hours')} />
       <NF label="Project life"    unit="yr"    value={proj.PL} onChange={s('PL')} min={1} max={50}  tipKey="PL" error={errFor('project life')} />
       <NF label="Electricity rate" unit="$/kWh" value={proj.ER} onChange={s('ER')} step={0.01} tipKey="ER" warn={warnFor('rate')} />
