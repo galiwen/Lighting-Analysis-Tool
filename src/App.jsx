@@ -48,10 +48,7 @@ const promote = (r) => {
     replaceSchedule: c.replaceSchedule_maint,
     profile: c.profile_maint,
     emissionsProfile: c.emissionsProfile_maint,
-    ctrlResults: {
-      ...c,
-      base: { E: r.E_base, L: r.L_base, N_replace: r.N_replace, TC: r.TC_base, gwp: r.gwpBase },
-    },
+    ctrlResults: c,
   };
 };
 

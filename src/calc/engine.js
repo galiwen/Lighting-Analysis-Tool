@@ -250,6 +250,13 @@ export function runProductAnalysis(proj, prod, controlsEnabled, ctrl) {
       profile_maint,
       emissionsProfile_ctrl:  emissCtrl.profile,
       emissionsProfile_maint: emissCtrlMaint.profile,
+      base: {
+        E: E_base,
+        L: L_base,
+        N_replace,
+        TC: TC_base,
+        gwp: gwpBase,
+      },
     };
   }
 
