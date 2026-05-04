@@ -17,6 +17,9 @@ export const CumulativeCostChart = ({ rA, rB, PL, labelA = 'A', labelB = 'B', co
   const pathA = buildPath(dataA);
   const pathB = buildPath(dataB);
 
+  // Find first crossover point where cumulative costs swap leader.
+  // Multiple crossovers are possible with different replacement schedules
+  // but only the first is marked, as it represents the initial payback point.
   let crossover = null;
   for (let i = 1; i < points; i++) {
     if ((dataA[i - 1] > dataB[i - 1]) !== (dataA[i] > dataB[i])) {
