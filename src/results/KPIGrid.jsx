@@ -39,9 +39,21 @@ export const KPIGrid = ({ rA, rB, labelA, labelB, colorA, colorB, controlsActive
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 10 }}>
-            <span style={{ fontFamily: T.SANS, fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', color: colorA }}>{k.a}</span>
+            <span style={{
+              fontFamily: T.SANS,
+              fontSize: k.winner === 'A' ? 26 : 16,
+              fontWeight: k.winner === 'A' ? 700 : 500,
+              letterSpacing: k.winner === 'A' ? '-0.02em' : '0',
+              color: colorA,
+            }}>{k.a}</span>
             <span style={{ fontFamily: T.MONO, fontSize: 10, color: T.MUTED }}>vs</span>
-            <span style={{ fontFamily: T.SANS, fontSize: 16, fontWeight: 500, color: colorB }}>{k.b}</span>
+            <span style={{
+              fontFamily: T.SANS,
+              fontSize: k.winner === 'B' ? 26 : 16,
+              fontWeight: k.winner === 'B' ? 700 : 500,
+              letterSpacing: k.winner === 'B' ? '-0.02em' : '0',
+              color: colorB,
+            }}>{k.b}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, paddingTop: 6, borderTop: `1px solid ${T.SUBTLE}` }}>
             <span style={micro}>{k.unit}</span>
