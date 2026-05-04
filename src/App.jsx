@@ -223,7 +223,7 @@ export default function App() {
           {controlsEnabled && <ControlsTable rA={rA} ctrl={ctrl} PL={proj.PL} />}
           <footer style={{ padding: '24px 28px', display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'baseline', gap: 18 }}>
             <span style={{ fontFamily: T.MONO, fontSize: 9, color: T.MUTED, letterSpacing: '0.06em', lineHeight: 1.7 }}>
-              CALCULATIONS PER CRC LP METHODOLOGY · TCO INCL. CAPITAL, ENERGY, REPLACEMENTS · GWP INCL. EMBODIED + OPERATIONAL · GRID DECARBONISATION APPLIED LINEARLY · NPV USES DISCOUNT RATE NET OF INFLATION · NOT FOR CERTIFICATION
+              TCO INCL. CAPITAL, ENERGY, REPLACEMENTS · GWP INCL. EMBODIED + OPERATIONAL · GRID DECARBONISATION APPLIED LINEARLY · NPV USES DISCOUNT RATE · ALL VALUES AUD · NOT FOR CERTIFICATION · SEE METHODOLOGY FOR ASSUMPTIONS
             </span>
             <span style={{ fontFamily: T.MONO, fontSize: 9, color: T.MUTED }}>© BUILT 2025</span>
           </footer>
