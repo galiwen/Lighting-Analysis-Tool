@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { T, micro } from './design/tokens.js';
-import { runProductAnalysis, validateInputs } from './calc/engine.js';
+import { runProductAnalysis, validateInputs, calculateComparisonNPV } from './calc/engine.js';
 import {
   PROJECT_DEFAULTS, PRODUCT_A_DEFAULTS, PRODUCT_B_DEFAULTS, CTRL_DEFAULTS,
   PRODUCT_A_PRESETS, BENCHMARKS, PROJECT_PRESETS,
@@ -110,19 +110,24 @@ export default function App() {
   const labelB = 'B';
   const controlsEnabled = presetCtrl !== 'none';
 
-  const { rA, rB } = useMemo(() => {
-    if (hasErrors) return { rA: null, rB: null };
+  const { rA, rB, npv } = useMemo(() => {
+    if (hasErrors) return { rA: null, rB: null, npv: 0 };
     try {
       const rawA = runProductAnalysis(proj, prodA, controlsEnabled, ctrl);
       const qB = { ...prodB, Q: prodB.Q || prodA.Q };
       const rawB = runProductAnalysis(proj, qB, controlsEnabled, ctrl);
-      return { rA: promote(rawA), rB: promote(rawB) };
+      const pA = promote(rawA);
+      const pB = promote(rawB);
+      const npv = calculateComparisonNPV(
+        { C_initial: pB.C_initial, E_base: pB.E_base, PV_replace: pB.PV_replace },
+        { C_initial: pA.C_initial, E_base: pA.E_base, PV_replace: pA.PV_replace },
+        proj.d, proj.PL, proj.ER, proj.i
+      );
+      return { rA: pA, rB: pB, npv };
     } catch {
-      return { rA: null, rB: null };
+      return { rA: null, rB: null, npv: 0 };
     }
   }, [hasErrors, proj, prodA, prodB, ctrl, controlsEnabled]);
-
-  const npv = (rA && rB) ? rB.TC_base - rA.TC_base : 0;
 
   const colorA = T.BLUE, colorB = T.VERM;
   const colorAd = T.BLUE_D, colorBd = T.VERM_D;
