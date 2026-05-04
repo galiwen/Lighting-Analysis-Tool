@@ -215,8 +215,8 @@ export default function App() {
         </section>
 
         <section>
-          <VerdictRibbon rA={rA} rB={rB} npv={npv} PL={proj.PL} labelA={labelA} labelB={labelB} />
-          <KPIGrid rA={rA} rB={rB} labelA={labelA} labelB={labelB} colorA={colorA} colorB={colorB} />
+          <VerdictRibbon rA={rA} rB={rB} npv={npv} PL={proj.PL} labelA={labelA} labelB={labelB} controlsActive={controlsEnabled} />
+          <KPIGrid rA={rA} rB={rB} labelA={labelA} labelB={labelB} colorA={colorA} colorB={colorB} controlsActive={controlsEnabled} />
           <CarbonBars rA={rA} rB={rB} labelA={labelA} labelB={labelB}
                       colorA={colorA} colorB={colorB} colorAd={colorAd} colorBd={colorBd} />
           <SectionHead idx="06" title="Cumulative cost — Net Present Value" right="[ AUD · DISCOUNTED ]" />

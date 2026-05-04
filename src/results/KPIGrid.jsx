@@ -7,7 +7,7 @@ const pctDelta = (a, b) => {
   return (p >= 0 ? '+' : '') + p.toFixed(1) + '%';
 };
 
-export const KPIGrid = ({ rA, rB, labelA, labelB, colorA, colorB }) => {
+export const KPIGrid = ({ rA, rB, labelA, labelB, colorA, colorB, controlsActive = false }) => {
   if (!rA || !rB) return null;
   const items = [
     { lab: 'Total carbon',   a: fmt.co2(rA.gwpBase.total), b: fmt.co2(rB.gwpBase.total),
@@ -25,6 +25,11 @@ export const KPIGrid = ({ rA, rB, labelA, labelB, colorA, colorB }) => {
   ];
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', borderBottom: `1px solid ${T.RULE}` }}>
+      {controlsActive && (
+        <div style={{ gridColumn: '1 / -1', padding: '6px 22px', borderBottom: `1px solid ${T.SUBTLE}`, background: T.BG_PANEL }}>
+          <span style={micro}>[ RESULTS INCL. CONTROLS + MAINTENANCE DIMMING ]</span>
+        </div>
+      )}
       {items.map((k, i) => (
         <div key={k.lab} style={{ padding: '18px 22px', borderRight: i < 3 ? `1px solid ${T.SUBTLE}` : 'none' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>

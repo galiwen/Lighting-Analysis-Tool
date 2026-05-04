@@ -1,7 +1,7 @@
 import { T, micro } from '../design/tokens.js';
 import { fmt } from '../components/format.js';
 
-export const VerdictRibbon = ({ rA, rB, npv, PL, labelA = 'A', labelB = 'B' }) => {
+export const VerdictRibbon = ({ rA, rB, npv, PL, labelA = 'A', labelB = 'B', controlsActive = false }) => {
   if (!rA || !rB) return null;
   const aWins = npv >= 0;
   const winner = aWins ? labelA : labelB;
@@ -22,7 +22,12 @@ export const VerdictRibbon = ({ rA, rB, npv, PL, labelA = 'A', labelB = 'B' }) =
       borderBottom: `1px solid ${T.RULE}`, background: T.BG_PANEL,
       alignItems: 'center',
     }}>
-      <span style={{ ...micro, color: T.INK }}>[ VERDICT ]</span>
+      <span style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <span style={{ ...micro, color: T.INK }}>[ VERDICT ]</span>
+        {controlsActive && (
+          <span style={{ ...micro, color: T.MUTED }}>[ INCL. CONTROLS + DIM ]</span>
+        )}
+      </span>
       <span style={{ fontFamily: T.SANS, fontSize: 13, color: T.INK }}>
         Product <strong style={{ color: winColor }}>{winner}</strong> is preferable — {summary}.
       </span>
