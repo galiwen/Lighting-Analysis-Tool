@@ -6,18 +6,26 @@ export const ProjectPanel = ({
   proj, setProj, validation,
   presets, selectedPreset, onPresetSelect,
   onClear, canClear,
+  chromeless = false,
 }) => {
   const [adv, setAdv] = useState(false);
   const s = k => v => setProj(p => ({ ...p, [k]: v }));
   const errFor = frag => validation.errors.find(e => e.toLowerCase().includes(frag));
   const warnFor = frag => validation.warnings.find(w => w.toLowerCase().includes(frag));
+
+  const outer = chromeless
+    ? { padding: 0 }
+    : { padding: '16px 22px', borderRight: `1px solid ${T.SUBTLE}` };
+
   return (
-    <div style={{ padding: '16px 22px', borderRight: `1px solid ${T.SUBTLE}` }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
-                    paddingBottom: 8, borderBottom: `1px solid ${T.INK}`, marginBottom: 4 }}>
-        <span style={{ fontFamily: T.SANS, fontSize: 12, fontWeight: 600 }}>01 · Project</span>
-        <span style={micro}>SHARED</span>
-      </div>
+    <div style={outer}>
+      {!chromeless && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+                      paddingBottom: 8, borderBottom: `1px solid ${T.INK}`, marginBottom: 4 }}>
+          <span style={{ fontFamily: T.SANS, fontSize: 12, fontWeight: 600 }}>01 · Project</span>
+          <span style={micro}>SHARED</span>
+        </div>
+      )}
 
       {presets && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '8px 0', borderBottom: `1px solid ${T.SUBTLE}`, alignItems: 'center' }}>

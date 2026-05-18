@@ -7,35 +7,93 @@ const pctDelta = (a, b) => {
   return (p >= 0 ? '+' : '') + p.toFixed(1) + '%';
 };
 
+const tickStep = (max) =>
+  max > 200000 ? 50000 :
+  max > 100000 ? 25000 :
+  max > 40000  ? 10000 :
+  max > 4000   ?  1000 : 500;
+
+const tickLabel = v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : `${v}`;
+
+const TickRow = ({ max }) => {
+  const step = tickStep(max);
+  const ticks = [];
+  for (let v = 0; v <= max; v += step) ticks.push(v);
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 90px', gap: 12, marginBottom: 4 }}>
+      <span />
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        {ticks.map(v => <span key={v} style={{ ...micro, fontSize: 8 }}>{tickLabel(v)}</span>)}
+      </div>
+      <span />
+    </div>
+  );
+};
+
+const CostBar = ({ name, value, max, color }) => (
+  <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 90px', gap: 12, alignItems: 'center', padding: '8px 0', borderTop: `1px solid ${T.SUBTLE}` }}>
+    <span style={{ fontFamily: T.SANS, fontSize: 12, fontWeight: 500, color: T.INK }}>{name}</span>
+    <div style={{ position: 'relative', height: 18, background: T.SUBTLE }}>
+      <div style={{
+        position: 'absolute', left: 0, top: 0, height: '100%',
+        width: (value / max * 100) + '%', background: color,
+      }} />
+    </div>
+    <span style={{ fontFamily: T.MONO, fontSize: 12, color: T.INK, textAlign: 'right' }}>{fmt.aud(value)}</span>
+  </div>
+);
+
+const CarbonBar = ({ name, gwp, max, color, colorD }) => (
+  <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 90px', gap: 12, alignItems: 'center', padding: '8px 0', borderTop: `1px solid ${T.SUBTLE}` }}>
+    <span style={{ fontFamily: T.SANS, fontSize: 12, fontWeight: 500, color: T.INK }}>{name}</span>
+    <div style={{ position: 'relative', height: 18, background: T.SUBTLE }}>
+      <div style={{
+        position: 'absolute', left: 0, top: 0, height: '100%',
+        width: (gwp.embodied / max * 100) + '%', background: colorD,
+      }} />
+      <div style={{
+        position: 'absolute', left: (gwp.embodied / max * 100) + '%', top: 0, height: '100%',
+        width: (gwp.operational / max * 100) + '%', background: color,
+      }} />
+    </div>
+    <span style={{ fontFamily: T.MONO, fontSize: 12, color: T.INK, textAlign: 'right' }}>{fmt.co2(gwp.total)}</span>
+  </div>
+);
+
 export const ControlsTable = ({ rA, ctrl, PL: _PL }) => {
   if (!rA?.ctrlResults) return null;
   const cr = rA.ctrlResults;
   const pb = cr.simple_payback;
   const inLoan = pb <= ctrl.LT;
+  const colorA = T.BLUE;
+  const colorAd = T.BLUE_D;
 
   const scenarios = [
     {
-      lab: 'Base case',
+      lab: 'Base',
       eA: cr.base.E,
-      LA: cr.base.L,        nA: cr.base.N_replace,
+      LA: cr.base.L,
+      nA: cr.base.N_replace,
       tcA: cr.base.TC,
-      embA: cr.base.gwp.embodied, opA: cr.base.gwp.operational, gA: cr.base.gwp.total,
+      gwpA: cr.base.gwp,
       loan: '—',
     },
     {
       lab: '+ Controls',
       eA: cr.E_control,
-      LA: cr.L_control,           nA: cr.N_replace_ctrl,
+      LA: cr.L_control,
+      nA: cr.N_replace_ctrl,
       tcA: cr.TC_control,
-      embA: cr.gwpCtrl.embodied,  opA: cr.gwpCtrl.operational,  gA: cr.gwpCtrl.total,
+      gwpA: cr.gwpCtrl,
       loan: `${fmt.aud(cr.ALP)}/yr`,
     },
     {
       lab: '+ Controls + Dim',
       eA: cr.E_control_maint,
-      LA: cr.L_control_maint,         nA: cr.N_replace_ctrl_maint,
+      LA: cr.L_control_maint,
+      nA: cr.N_replace_ctrl_maint,
       tcA: cr.TC_control_maint,
-      embA: cr.gwpCtrlMaint.embodied, opA: cr.gwpCtrlMaint.operational, gA: cr.gwpCtrlMaint.total,
+      gwpA: cr.gwpCtrlMaint,
       loan: `${fmt.aud(cr.ALP)}/yr`,
     },
   ];
@@ -45,23 +103,18 @@ export const ControlsTable = ({ rA, ctrl, PL: _PL }) => {
     const pct = from ? (delta / from) * 100 : 0;
     return { delta, pct };
   };
-  const dBase2Ctrl    = co2Diff(cr.base.gwp.total, cr.gwpCtrl.total);
-  const dCtrl2Maint   = co2Diff(cr.gwpCtrl.total, cr.gwpCtrlMaint.total);
-  const dBase2Maint   = co2Diff(cr.base.gwp.total, cr.gwpCtrlMaint.total);
+  const dBase2Ctrl  = co2Diff(cr.base.gwp.total, cr.gwpCtrl.total);
+  const dCtrl2Maint = co2Diff(cr.gwpCtrl.total, cr.gwpCtrlMaint.total);
+  const dBase2Maint = co2Diff(cr.base.gwp.total, cr.gwpCtrlMaint.total);
 
   const carbonCells = [
-    { lab: 'Base → + Controls',           d: dBase2Ctrl },
-    { lab: '+ Controls → + Ctrl + Dim',   d: dCtrl2Maint },
-    { lab: 'Base → + Controls + Dim',     d: dBase2Maint },
+    { lab: 'Base → + Controls',         d: dBase2Ctrl },
+    { lab: '+ Controls → + Ctrl + Dim', d: dCtrl2Maint },
+    { lab: 'Base → + Controls + Dim',   d: dBase2Maint },
   ];
 
-  const headers = [
-    'Scenario','Energy A','Lifetime A','Repls A','TCO A','Embodied A','Operational A','GWP A','Loan/yr',
-  ];
-  const aIdx = new Set([1, 2, 3, 4, 5, 6, 7]);
-  const headerColor = i => aIdx.has(i) ? T.BLUE : T.INK;
-
-  const numStyle = (color, sz = 11) => ({ fontFamily: T.MONO, fontSize: sz, padding: '6px 4px', textAlign: 'right', color });
+  const costMax = Math.max(...scenarios.map(s => s.tcA)) * 1.1;
+  const gwpMax  = Math.max(...scenarios.map(s => s.gwpA.total)) * 1.1;
 
   return (
     <div style={{ padding: '20px 28px', borderBottom: `1px solid ${T.RULE}` }}>
@@ -99,7 +152,7 @@ export const ControlsTable = ({ rA, ctrl, PL: _PL }) => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 14, padding: '10px 12px', background: T.BG_PANEL, border: `1px solid ${T.SUBTLE}` }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 18, padding: '10px 12px', background: T.BG_PANEL, border: `1px solid ${T.SUBTLE}` }}>
         <div style={{ ...micro, fontSize: 9, gridColumn: '1 / -1', marginBottom: 4 }}>[ CARBON AVOIDED · PRODUCT A ]</div>
         {carbonCells.map(c => (
           <div key={c.lab}>
@@ -116,12 +169,44 @@ export const ControlsTable = ({ rA, ctrl, PL: _PL }) => {
         ))}
       </div>
 
-      <div style={{ overflowX: 'auto' }}>
+      <div style={{ marginBottom: 18 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
+          <span style={{ fontFamily: T.SANS, fontSize: 12, fontWeight: 600 }}>Total Cost of Ownership</span>
+          <span style={micro}>[ AUD · NPV ]</span>
+        </div>
+        <TickRow max={costMax} />
+        {scenarios.map(s => (
+          <CostBar key={s.lab} name={s.lab} value={s.tcA} max={costMax} color={colorA} />
+        ))}
+      </div>
+
+      <div style={{ marginBottom: 18 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
+          <span style={{ fontFamily: T.SANS, fontSize: 12, fontWeight: 600 }}>Lifecycle carbon</span>
+          <span style={micro}>[ kgCO₂e · LIFECYCLE ]</span>
+        </div>
+        <TickRow max={gwpMax} />
+        {scenarios.map(s => (
+          <CarbonBar key={s.lab} name={s.lab} gwp={s.gwpA} max={gwpMax} color={colorA} colorD={colorAd} />
+        ))}
+        <div style={{ display: 'flex', gap: 18, marginTop: 12 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 10, height: 10, background: colorAd }} />
+            <span style={{ ...micro, fontSize: 9 }}>Embodied (mfg + EOL)</span>
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 10, height: 10, background: colorA }} />
+            <span style={{ ...micro, fontSize: 9 }}>Operational (electricity)</span>
+          </span>
+        </div>
+      </div>
+
+      <div style={{ overflowX: 'auto', marginBottom: 8 }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderTop: `1px solid ${T.INK}`, borderBottom: `1px solid ${T.INK}` }}>
-              {headers.map((h, i) => (
-                <th key={h} style={{ ...micro, padding: '6px 4px', textAlign: i === 0 ? 'left' : 'right', color: headerColor(i), whiteSpace: 'nowrap' }}>
+              {['Scenario', 'Energy A', 'Lifetime A', 'Repls A', 'Loan/yr'].map((h, i) => (
+                <th key={h} style={{ ...micro, padding: '6px 4px', textAlign: i === 0 ? 'left' : 'right', color: i === 0 ? T.INK : T.BLUE, whiteSpace: 'nowrap' }}>
                   {h}
                 </th>
               ))}
@@ -131,14 +216,10 @@ export const ControlsTable = ({ rA, ctrl, PL: _PL }) => {
             {scenarios.map(sc => (
               <tr key={sc.lab} style={{ borderBottom: `1px solid ${T.SUBTLE}` }}>
                 <td style={{ fontFamily: T.SANS, fontSize: 12, padding: '6px 4px' }}>{sc.lab}</td>
-                <td style={numStyle(T.BLUE)}>{fmt.kwh(sc.eA)}</td>
-                <td style={numStyle(T.BLUE)}>{fmt.yr(sc.LA)}</td>
-                <td style={numStyle(T.BLUE)}>{sc.nA}×</td>
-                <td style={numStyle(T.BLUE)}>{fmt.aud(sc.tcA)}</td>
-                <td style={numStyle(T.BLUE)}>{fmt.co2(sc.embA)}</td>
-                <td style={numStyle(T.BLUE)}>{fmt.co2(sc.opA)}</td>
-                <td style={numStyle(T.BLUE)}>{fmt.co2(sc.gA)}</td>
-                <td style={numStyle(T.MUTED, 10)}>{sc.loan}</td>
+                <td style={{ fontFamily: T.MONO, fontSize: 11, padding: '6px 4px', textAlign: 'right', color: T.BLUE }}>{fmt.kwh(sc.eA)}</td>
+                <td style={{ fontFamily: T.MONO, fontSize: 11, padding: '6px 4px', textAlign: 'right', color: T.BLUE }}>{fmt.yr(sc.LA)}</td>
+                <td style={{ fontFamily: T.MONO, fontSize: 11, padding: '6px 4px', textAlign: 'right', color: T.BLUE }}>{sc.nA}×</td>
+                <td style={{ fontFamily: T.MONO, fontSize: 10, padding: '6px 4px', textAlign: 'right', color: T.MUTED }}>{sc.loan}</td>
               </tr>
             ))}
           </tbody>

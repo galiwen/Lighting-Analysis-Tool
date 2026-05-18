@@ -19,4 +19,6 @@ export const TIPS = {
   CACC:     'Control Additional Cost Coefficient: the multiplier applied to the base supply+install cost to estimate the additional per-luminaire cost of the control system. CACC = 1.15 means 15% uplift.',
   r:        'The annual interest rate on the loan used to finance the control system upgrade. This is distinct from the project discount rate — they serve different purposes.',
   LT:       'The term over which the control system loan is repaid. Affects annual repayment size and total interest paid. Should match the financing agreement.',
+  CRI:      'Colour Rendering Index — 0–100 measure of how accurately a light source reveals colour vs daylight. CRI ≥ 80 is typical interior; CRI ≥ 90 for art, retail, and colour-critical tasks. Higher is better.',
+  UGR:      'Unified Glare Rating — psychometric glare index against a representative room. UGR ≤ 19 for offices and reading; ≤ 22 for circulation and retail. Lower is better. Use as a relative comparator between products.',
 };

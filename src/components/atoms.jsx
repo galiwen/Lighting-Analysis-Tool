@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { T, micro } from '../design/tokens.js';
 
 export const Tip = ({ text }) => {
@@ -44,6 +44,12 @@ export const SectionHead = ({ idx, title, right }) => (
 );
 
 export const Modal = ({ open, onClose, title, width = 620, children }) => {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = e => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
   if (!open) return null;
   return (
     <div onClick={onClose} style={{

@@ -8,21 +8,28 @@ export const ProductPanel = ({
   presets, selectedPreset, onPresetSelect,
   onClear, canClear,
   last,
+  chromeless = false,
 }) => {
   const s = k => v => setProd(p => ({ ...p, [k]: v }));
   const errFor = frag => validation.errors.find(e => e.toLowerCase().includes(frag));
   const warnFor = frag => validation.warnings.find(w => w.toLowerCase().includes(frag));
   const sectionNum = num === 'A' ? '03' : '04';
 
+  const outer = chromeless
+    ? { padding: 0, borderTop: `2px solid ${accent}` }
+    : { padding: '16px 22px', borderRight: last ? 'none' : `1px solid ${T.SUBTLE}` };
+
   return (
-    <div style={{ padding: '16px 22px', borderRight: last ? 'none' : `1px solid ${T.SUBTLE}` }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
-                    paddingBottom: 8, borderBottom: `2px solid ${accent}`, marginBottom: 4 }}>
-        <span style={{ fontFamily: T.SANS, fontSize: 12, fontWeight: 600, color: accent }}>
-          {sectionNum} · Product {num}
-        </span>
-        <span style={{ ...micro, color: accent }}>{accentLabel}</span>
-      </div>
+    <div style={outer}>
+      {!chromeless && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+                      paddingBottom: 8, borderBottom: `2px solid ${accent}`, marginBottom: 4 }}>
+          <span style={{ fontFamily: T.SANS, fontSize: 12, fontWeight: 600, color: accent }}>
+            {sectionNum} · Product {num}
+          </span>
+          <span style={{ ...micro, color: accent }}>{accentLabel}</span>
+        </div>
+      )}
 
       {presets && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '8px 0', borderBottom: `1px solid ${T.SUBTLE}`, alignItems: 'center' }}>
@@ -58,6 +65,8 @@ export const ProductPanel = ({
       <NF label="Embodied C"  unit="kg/ea" value={prod.GWP_CG}  onChange={s('GWP_CG')}  min={0} step={0.5} tipKey="GWP_CG" accent={accent} />
       <NF label="End of life" unit="kg/ea" value={prod.GWP_EOL} onChange={s('GWP_EOL')} min={0} step={0.1} tipKey="GWP_EOL" accent={accent} />
       <NF label="Supply + Inst" unit="$/ea" value={prod.C_SI}    onChange={s('C_SI')}    min={0} step={10}  tipKey="C_SI" accent={accent} />
+      <NF label="CRI"                       value={prod.CRI}     onChange={s('CRI')}     min={0} max={100} step={1} tipKey="CRI" accent={accent} />
+      <NF label="UGR"                       value={prod.UGR}     onChange={s('UGR')}     min={5} max={35}  step={1} tipKey="UGR" accent={accent} />
     </div>
   );
 };

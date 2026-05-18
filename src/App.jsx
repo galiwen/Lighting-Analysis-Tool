@@ -3,35 +3,106 @@ import { T, micro } from './design/tokens.js';
 import { runProductAnalysis, validateInputs, calculateComparisonNPV } from './calc/engine.js';
 import {
   PROJECT_DEFAULTS, PRODUCT_A_DEFAULTS, PRODUCT_B_DEFAULTS, CTRL_DEFAULTS,
-  PRODUCT_A_PRESETS, BENCHMARKS, PROJECT_PRESETS,
+  PRODUCT_A_PRESETS, BENCHMARKS, PROJECT_PRESETS, CTRL_PRESETS,
 } from './inputs/defaults.js';
 import { ProjectPanel } from './inputs/ProjectPanel.jsx';
 import { ProductPanel } from './inputs/ProductPanel.jsx';
 import { ControlsPanel } from './inputs/ControlsPanel.jsx';
-import { VerdictRibbon } from './results/VerdictRibbon.jsx';
-import { KPIGrid } from './results/KPIGrid.jsx';
 import { CarbonBars } from './results/CarbonBars.jsx';
 import { CumulativeCostChart } from './results/CumulativeCostChart.jsx';
-import { LineItems } from './results/LineItems.jsx';
-import { ReplacementSchedule } from './results/ReplacementSchedule.jsx';
 import { ControlsTable } from './results/ControlsTable.jsx';
-import { SectionHead } from './components/atoms.jsx';
+import { QuickScoreCard } from './results/QuickScoreCard.jsx';
+import { SectionHead, Modal } from './components/atoms.jsx';
+import { SectionTile } from './components/SectionTile.jsx';
 import { InfoModal } from './modals/InfoModal.jsx';
 import { GlossaryModal } from './modals/GlossaryModal.jsx';
 import { WelcomeModal } from './modals/WelcomeModal.jsx';
 
 const MAX_W = 1320;
 
-const linkBtn = {
-  padding: '7px 12px', background: 'transparent', border: `1px solid ${T.INK}`,
+const linkBtnBase = {
+  padding: '7px 12px', border: `1px solid ${T.INK}`,
   fontFamily: T.MONO, fontSize: 10, fontWeight: 500, color: T.INK,
   letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer',
+  transition: 'background 120ms ease',
+};
+
+const LinkBtn = ({ onClick, children }) => {
+  const [hover, setHover] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{ ...linkBtnBase, background: hover ? T.BG_PANEL : 'transparent' }}
+    >
+      {children}
+    </button>
+  );
 };
 
 const sliceEqual = (a, b, keys) => keys.every(k => a[k] === b[k]);
 const PROJ_KEYS = ['OH', 'PL', 'ER', 'GF_0', 'GD', 'GDT', 'i', 'd'];
-const PROD_KEYS = ['W', 'FL', 'Q', 'LMF', 'LH', 'GWP_CG', 'GWP_EOL', 'C_SI'];
+const PROD_KEYS = ['W', 'FL', 'Q', 'LMF', 'LH', 'GWP_CG', 'GWP_EOL', 'C_SI', 'CRI', 'UGR'];
 const CTRL_KEYS = ['CSC', 'CACC', 'r', 'LT'];
+
+const presetLabel = (list, id) => {
+  const found = list.find(p => p.id === id);
+  return found ? found.label.toUpperCase() : null;
+};
+
+const summaryLine = { fontFamily: T.MONO, fontSize: 10, color: T.INK, letterSpacing: '0.04em', lineHeight: 1.7 };
+const summaryMuted = { ...summaryLine, color: T.MUTED };
+const summaryHeadline = { fontFamily: T.SANS, fontSize: 12, fontWeight: 600, color: T.INK, letterSpacing: '0.02em', textTransform: 'uppercase', lineHeight: 1.4 };
+
+const ProjectTileBody = ({ proj, presetId }) => {
+  const label = presetLabel(PROJECT_PRESETS, presetId);
+  return (
+    <div>
+      <div style={label ? summaryHeadline : { ...summaryHeadline, color: T.MUTED }}>
+        {label || '[ CUSTOM ]'}
+      </div>
+      <div style={{ ...summaryLine, marginTop: 6 }}>
+        {proj.OH.toLocaleString()} HR/YR · {proj.PL} YR
+      </div>
+      <div style={summaryLine}>
+        ER ${Number(proj.ER).toFixed(2)}/kWh
+      </div>
+    </div>
+  );
+};
+
+const ControlsTileBody = ({ ctrl, presetId }) => {
+  const label = presetLabel(CTRL_PRESETS, presetId);
+  const disabled = presetId === 'none';
+  return (
+    <div>
+      <div style={label ? summaryHeadline : { ...summaryHeadline, color: T.MUTED }}>
+        {label || '[ CUSTOM ]'}
+      </div>
+      <div style={{ ...(disabled ? summaryMuted : summaryLine), marginTop: 6 }}>
+        {disabled ? 'DISABLED' : `CSC ${Number(ctrl.CSC).toFixed(2)} · CACC ${Number(ctrl.CACC).toFixed(2)}`}
+      </div>
+    </div>
+  );
+};
+
+const ProductTileBody = ({ prod, presetId, presets }) => {
+  const label = presetLabel(presets, presetId);
+  return (
+    <div>
+      <div style={label ? summaryHeadline : { ...summaryHeadline, color: T.MUTED }}>
+        {label || '[ CUSTOM ]'}
+      </div>
+      <div style={{ ...summaryLine, marginTop: 6 }}>
+        {prod.W} W · {Number(prod.FL).toLocaleString()} lm · ×{prod.Q}
+      </div>
+      <div style={summaryLine}>
+        LMF {Number(prod.LMF).toFixed(2)} · LH {Number(prod.LH).toLocaleString()} h
+      </div>
+    </div>
+  );
+};
 
 const promote = (r) => {
   if (!r?.ctrlResults) return r;
@@ -63,6 +134,7 @@ export default function App() {
   const [presetB, setPresetB] = useState(null);
   const [presetCtrl, setPresetCtrl] = useState(null);
 
+  const [openTile, setOpenTile] = useState(null);
   const [infoOpen, setInfoOpen] = useState(false);
   const [glossOpen, setGlossOpen] = useState(false);
   const [welcomeOpen, setWelcomeOpen] = useState(true);
@@ -72,11 +144,11 @@ export default function App() {
     setPresetProj(p.id);
   };
   const handlePresetA = (b) => {
-    setProdA(p => ({ ...p, W: b.W, FL: b.FL, LMF: b.LMF, LH: b.LH, GWP_CG: b.GWP_CG, GWP_EOL: b.GWP_EOL, C_SI: b.C_SI }));
+    setProdA(p => ({ ...p, W: b.W, FL: b.FL, LMF: b.LMF, LH: b.LH, GWP_CG: b.GWP_CG, GWP_EOL: b.GWP_EOL, C_SI: b.C_SI, CRI: b.CRI, UGR: b.UGR }));
     setPresetA(b.id);
   };
   const handlePresetB = (b) => {
-    setProdB(p => ({ ...p, W: b.W, FL: b.FL, LMF: b.LMF, LH: b.LH, GWP_CG: b.GWP_CG, GWP_EOL: b.GWP_EOL, C_SI: b.C_SI }));
+    setProdB(p => ({ ...p, W: b.W, FL: b.FL, LMF: b.LMF, LH: b.LH, GWP_CG: b.GWP_CG, GWP_EOL: b.GWP_EOL, C_SI: b.C_SI, CRI: b.CRI, UGR: b.UGR }));
     setPresetB(b.id);
   };
   const handlePresetCtrl = (p) => {
@@ -148,9 +220,9 @@ export default function App() {
           </div>
           <div />
           <div style={{ display: 'flex', gap: 6 }}>
-            <button onClick={() => setWelcomeOpen(true)} style={linkBtn}>Info</button>
-            <button onClick={() => setGlossOpen(true)} style={linkBtn}>Glossary</button>
-            <button onClick={() => setInfoOpen(true)} style={linkBtn}>Methodology</button>
+            <LinkBtn onClick={() => setWelcomeOpen(true)}>Info</LinkBtn>
+            <LinkBtn onClick={() => setGlossOpen(true)}>Glossary</LinkBtn>
+            <LinkBtn onClick={() => setInfoOpen(true)}>Methodology</LinkBtn>
           </div>
         </div>
         {(validation.errors.length > 0 || validation.warnings.length > 0) && (
@@ -179,47 +251,45 @@ export default function App() {
       <main style={{ maxWidth: MAX_W, margin: '0 auto' }}>
 
         <section style={{ borderBottom: `1px solid ${T.INK}` }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)' }}>
-            <ProjectPanel
-              proj={proj} setProj={setProj} validation={validation}
-              presets={PROJECT_PRESETS}
-              selectedPreset={presetProj} onPresetSelect={handlePresetProj}
-              onClear={handleClearProj} canClear={canClearProj}
-            />
-            <ControlsPanel
-              ctrl={ctrl} setCtrl={setCtrl}
-              presetId={presetCtrl} onPresetSelect={handlePresetCtrl}
-              onClear={handleClearCtrl} canClear={canClearCtrl}
-            />
-            <ProductPanel
-              num="A" prod={prodA} setProd={setProdA}
-              accent={T.BLUE} accentLabel="PROPOSED"
-              validation={validation}
-              presets={PRODUCT_A_PRESETS}
-              selectedPreset={presetA} onPresetSelect={handlePresetA}
-              onClear={handleClearA} canClear={canClearA}
-            />
-            <ProductPanel
-              num="B" prod={prodB} setProd={setProdB}
-              accent={T.VERM} accentLabel="BENCHMARK"
-              validation={validation}
-              presets={BENCHMARKS}
-              selectedPreset={presetB} onPresetSelect={handlePresetB}
-              onClear={handleClearB} canClear={canClearB}
-              last
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 340px) 1fr' }}>
+            <div style={{
+              borderRight: `1px solid ${T.SUBTLE}`,
+              display: 'flex', flexDirection: 'column',
+              gap: 8, padding: 14,
+            }}>
+              <SectionTile
+                index="01" title="PROJECT" accentLabel="SHARED"
+                onClick={() => setOpenTile('proj')}
+                summary={<ProjectTileBody proj={proj} presetId={presetProj} />}
+              />
+              <SectionTile
+                index="02" title="CONTROLS" accentLabel="PROJECT-LEVEL"
+                onClick={() => setOpenTile('ctrl')}
+                summary={<ControlsTileBody ctrl={ctrl} presetId={presetCtrl} />}
+              />
+              <SectionTile
+                index="03" title="PRODUCT A" accent={T.BLUE} accentLabel="PROPOSED"
+                onClick={() => setOpenTile('a')}
+                summary={<ProductTileBody prod={prodA} presetId={presetA} presets={PRODUCT_A_PRESETS} />}
+              />
+              <SectionTile
+                index="04" title="PRODUCT B" accent={T.VERM} accentLabel="BENCHMARK"
+                onClick={() => setOpenTile('b')}
+                summary={<ProductTileBody prod={prodB} presetId={presetB} presets={BENCHMARKS} />}
+              />
+            </div>
+            <QuickScoreCard
+              rA={rA} rB={rB} prodA={prodA} prodB={prodB} npv={npv} PL={proj.PL}
+              controlsActive={controlsEnabled} colorA={colorA} colorB={colorB}
             />
           </div>
         </section>
 
         <section>
-          <VerdictRibbon rA={rA} rB={rB} npv={npv} PL={proj.PL} labelA={labelA} labelB={labelB} controlsActive={controlsEnabled} />
-          <KPIGrid rA={rA} rB={rB} labelA={labelA} labelB={labelB} colorA={colorA} colorB={colorB} controlsActive={controlsEnabled} />
           <CarbonBars rA={rA} rB={rB} labelA={labelA} labelB={labelB}
                       colorA={colorA} colorB={colorB} colorAd={colorAd} colorBd={colorBd} />
           <SectionHead idx="06" title="Cumulative cost — Net Present Value" right="[ AUD · DISCOUNTED ]" />
           <CumulativeCostChart rA={rA} rB={rB} PL={proj.PL} labelA={labelA} labelB={labelB} colorA={colorA} colorB={colorB} />
-          <LineItems rA={rA} rB={rB} PL={proj.PL} labelA={labelA} labelB={labelB} colorA={colorA} colorB={colorB} />
-          <ReplacementSchedule rA={rA} rB={rB} labelA={labelA} labelB={labelB} colorA={colorA} colorB={colorB} />
           {controlsEnabled && <ControlsTable rA={rA} ctrl={ctrl} PL={proj.PL} />}
           <footer style={{ padding: '24px 28px', display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'baseline', gap: 18 }}>
             <span style={{ fontFamily: T.MONO, fontSize: 9, color: T.MUTED, letterSpacing: '0.06em', lineHeight: 1.7 }}>
@@ -229,6 +299,46 @@ export default function App() {
           </footer>
         </section>
       </main>
+
+      <Modal open={openTile === 'proj'} onClose={() => setOpenTile(null)} title="01 · Project" width={520}>
+        <ProjectPanel
+          chromeless
+          proj={proj} setProj={setProj} validation={validation}
+          presets={PROJECT_PRESETS}
+          selectedPreset={presetProj} onPresetSelect={handlePresetProj}
+          onClear={handleClearProj} canClear={canClearProj}
+        />
+      </Modal>
+      <Modal open={openTile === 'ctrl'} onClose={() => setOpenTile(null)} title="02 · Controls" width={520}>
+        <ControlsPanel
+          chromeless
+          ctrl={ctrl} setCtrl={setCtrl}
+          presetId={presetCtrl} onPresetSelect={handlePresetCtrl}
+          onClear={handleClearCtrl} canClear={canClearCtrl}
+        />
+      </Modal>
+      <Modal open={openTile === 'a'} onClose={() => setOpenTile(null)} title="03 · Product A — Proposed" width={520}>
+        <ProductPanel
+          chromeless
+          num="A" prod={prodA} setProd={setProdA}
+          accent={T.BLUE} accentLabel="PROPOSED"
+          validation={validation}
+          presets={PRODUCT_A_PRESETS}
+          selectedPreset={presetA} onPresetSelect={handlePresetA}
+          onClear={handleClearA} canClear={canClearA}
+        />
+      </Modal>
+      <Modal open={openTile === 'b'} onClose={() => setOpenTile(null)} title="04 · Product B — Benchmark" width={520}>
+        <ProductPanel
+          chromeless
+          num="B" prod={prodB} setProd={setProdB}
+          accent={T.VERM} accentLabel="BENCHMARK"
+          validation={validation}
+          presets={BENCHMARKS}
+          selectedPreset={presetB} onPresetSelect={handlePresetB}
+          onClear={handleClearB} canClear={canClearB}
+        />
+      </Modal>
 
       <InfoModal open={infoOpen} onClose={() => setInfoOpen(false)} />
       <GlossaryModal open={glossOpen} onClose={() => setGlossOpen(false)} />

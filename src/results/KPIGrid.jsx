@@ -1,11 +1,6 @@
 import { T, micro } from '../design/tokens.js';
 import { fmt } from '../components/format.js';
-
-const pctDelta = (a, b) => {
-  if (!b) return '—';
-  const p = ((a - b) / b) * 100;
-  return (p >= 0 ? '+' : '') + p.toFixed(1) + '%';
-};
+import { pctDelta } from './compare.js';
 
 export const KPIGrid = ({ rA, rB, labelA, labelB, colorA, colorB, controlsActive = false }) => {
   if (!rA || !rB) return null;
