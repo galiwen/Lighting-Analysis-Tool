@@ -45,7 +45,7 @@ export const PRODUCT_A_PRESETS = [
 
 export const CTRL_PRESETS = [
   { id: 'none',      label: 'No Controls', sub: 'No control system — base case only',          CSC: 1.00, CACC: 1.00, r: 0.08, LT: 10 },
-  { id: 'occupancy', label: 'Occupancy',   sub: 'Occupancy sensors only',                      CSC: 0.85, CACC: 1.10, r: 0.08, LT: 10 },
+  { id: 'occupancy', label: 'Occupancy',   sub: 'Occupancy sensors only',                      CSC: 0.80, CACC: 1.10, r: 0.08, LT: 10 },
   { id: 'daylight',  label: 'Daylight',    sub: 'Daylight harvesting',                         CSC: 0.75, CACC: 1.15, r: 0.08, LT: 10 },
   { id: 'combined',  label: 'Combined',    sub: 'Occupancy + daylight',                        CSC: 0.65, CACC: 1.25, r: 0.08, LT: 10 },
   { id: 'fullsmart', label: 'Full Smart',  sub: 'Networked DALI / scheduling / scene control', CSC: 0.50, CACC: 1.40, r: 0.08, LT: 12 },

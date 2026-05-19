@@ -48,3 +48,15 @@ input[type=number] { -moz-appearance: textfield; }
 
 input:focus { outline: none; }
 button:focus-visible { outline: 2px solid #D43A1A; outline-offset: 2px; }
+
+.hero-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+@media (max-width: 900px) {
+  .hero-tiles { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 560px) {
+  .hero-tiles { grid-template-columns: 1fr; }
+}

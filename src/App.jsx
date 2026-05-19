@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { T, micro } from './design/tokens.js';
-import { runProductAnalysis, validateInputs, calculateComparisonNPV } from './calc/engine.js';
+import { runProductAnalysis, validateInputs, checkCalculationWarnings } from './calc/engine.js';
 import {
   PROJECT_DEFAULTS, PRODUCT_A_DEFAULTS, PRODUCT_B_DEFAULTS, CTRL_DEFAULTS,
   PRODUCT_A_PRESETS, BENCHMARKS, PROJECT_PRESETS, CTRL_PRESETS,
@@ -11,7 +11,6 @@ import { ControlsPanel } from './inputs/ControlsPanel.jsx';
 import { CarbonBars } from './results/CarbonBars.jsx';
 import { CumulativeCostChart } from './results/CumulativeCostChart.jsx';
 import { ControlsTable } from './results/ControlsTable.jsx';
-import { QuickScoreCard } from './results/QuickScoreCard.jsx';
 import { SectionHead, Modal } from './components/atoms.jsx';
 import { SectionTile } from './components/SectionTile.jsx';
 import { InfoModal } from './modals/InfoModal.jsx';
@@ -166,37 +165,48 @@ export default function App() {
   const canClearB = !!presetB || !sliceEqual(prodB, PRODUCT_B_DEFAULTS, PROD_KEYS);
   const canClearCtrl = !!presetCtrl || !sliceEqual(ctrl, CTRL_DEFAULTS, CTRL_KEYS);
 
-  const validation = useMemo(() => {
+  const inputValidation = useMemo(() => {
     const p = validateInputs(proj, 'Project');
     const a = validateInputs(prodA, 'Product A');
     const b = validateInputs(prodB, 'Product B');
     return { errors: [...p.errors, ...a.errors, ...b.errors], warnings: [...p.warnings, ...a.warnings, ...b.warnings] };
   }, [proj, prodA, prodB]);
 
-  const hasErrors = validation.errors.length > 0;
+  const hasErrors = inputValidation.errors.length > 0;
 
   const labelA = 'A';
   const labelB = 'B';
   const controlsEnabled = presetCtrl !== 'none';
 
-  const { rA, rB, npv } = useMemo(() => {
-    if (hasErrors) return { rA: null, rB: null, npv: 0 };
+  const { rA, rB } = useMemo(() => {
+    if (hasErrors) return { rA: null, rB: null };
     try {
       const rawA = runProductAnalysis(proj, prodA, controlsEnabled, ctrl);
       const qB = { ...prodB, Q: prodB.Q || prodA.Q };
       const rawB = runProductAnalysis(proj, qB, controlsEnabled, ctrl);
-      const pA = promote(rawA);
-      const pB = promote(rawB);
-      const npv = calculateComparisonNPV(
-        { C_initial: pB.C_initial, E_base: pB.E_base, PV_replace: pB.PV_replace },
-        { C_initial: pA.C_initial, E_base: pA.E_base, PV_replace: pA.PV_replace },
-        proj.d, proj.PL, proj.ER, proj.i
-      );
-      return { rA: pA, rB: pB, npv };
+      return { rA: promote(rawA), rB: promote(rawB) };
     } catch {
-      return { rA: null, rB: null, npv: 0 };
+      return { rA: null, rB: null };
     }
   }, [hasErrors, proj, prodA, prodB, ctrl, controlsEnabled]);
+
+  const calcWarnings = useMemo(() => {
+    if (!rA || !rB) return [];
+    const aw = checkCalculationWarnings(rA, proj.PL, proj.GDT, rA.ctrlResults);
+    const bw = checkCalculationWarnings(rB, proj.PL, proj.GDT, rB.ctrlResults);
+    const aSet = new Set(aw);
+    const bSet = new Set(bw);
+    const out = [];
+    for (const w of aw) if (bSet.has(w) && !out.includes(w)) out.push(w);
+    for (const w of aw) if (!bSet.has(w)) out.push(`${labelA}: ${w}`);
+    for (const w of bw) if (!aSet.has(w)) out.push(`${labelB}: ${w}`);
+    return out;
+  }, [rA, rB, proj.PL, proj.GDT]);
+
+  const validation = useMemo(() => ({
+    errors: inputValidation.errors,
+    warnings: [...inputValidation.warnings, ...calcWarnings],
+  }), [inputValidation, calcWarnings]);
 
   const colorA = T.BLUE, colorB = T.VERM;
   const colorAd = T.BLUE_D, colorBd = T.VERM_D;
@@ -251,46 +261,46 @@ export default function App() {
       <main style={{ maxWidth: MAX_W, margin: '0 auto' }}>
 
         <section style={{ borderBottom: `1px solid ${T.INK}` }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 340px) 1fr' }}>
-            <div style={{
-              borderRight: `1px solid ${T.SUBTLE}`,
-              display: 'flex', flexDirection: 'column',
-              gap: 8, padding: 14,
-            }}>
-              <SectionTile
-                index="01" title="PROJECT" accentLabel="SHARED"
-                onClick={() => setOpenTile('proj')}
-                summary={<ProjectTileBody proj={proj} presetId={presetProj} />}
-              />
-              <SectionTile
-                index="02" title="CONTROLS" accentLabel="PROJECT-LEVEL"
-                onClick={() => setOpenTile('ctrl')}
-                summary={<ControlsTileBody ctrl={ctrl} presetId={presetCtrl} />}
-              />
-              <SectionTile
-                index="03" title="PRODUCT A" accent={T.BLUE} accentLabel="PROPOSED"
-                onClick={() => setOpenTile('a')}
-                summary={<ProductTileBody prod={prodA} presetId={presetA} presets={PRODUCT_A_PRESETS} />}
-              />
-              <SectionTile
-                index="04" title="PRODUCT B" accent={T.VERM} accentLabel="BENCHMARK"
-                onClick={() => setOpenTile('b')}
-                summary={<ProductTileBody prod={prodB} presetId={presetB} presets={BENCHMARKS} />}
-              />
-            </div>
-            <QuickScoreCard
-              rA={rA} rB={rB} prodA={prodA} prodB={prodB} npv={npv} PL={proj.PL}
-              controlsActive={controlsEnabled} colorA={colorA} colorB={colorB}
+          <div className="hero-tiles" style={{ padding: 14 }}>
+            <SectionTile
+              index="01" title="PROJECT" accentLabel="SHARED"
+              onClick={() => setOpenTile('proj')}
+              summary={<ProjectTileBody proj={proj} presetId={presetProj} />}
+            />
+            <SectionTile
+              index="02" title="CONTROLS" accentLabel="PROJECT-LEVEL"
+              onClick={() => setOpenTile('ctrl')}
+              summary={<ControlsTileBody ctrl={ctrl} presetId={presetCtrl} />}
+            />
+            <SectionTile
+              index="03" title="PRODUCT A" accent={T.BLUE} accentLabel="PROPOSED"
+              onClick={() => setOpenTile('a')}
+              summary={<ProductTileBody prod={prodA} presetId={presetA} presets={PRODUCT_A_PRESETS} />}
+            />
+            <SectionTile
+              index="04" title="PRODUCT B" accent={T.VERM} accentLabel="BENCHMARK"
+              onClick={() => setOpenTile('b')}
+              summary={<ProductTileBody prod={prodB} presetId={presetB} presets={BENCHMARKS} />}
             />
           </div>
         </section>
 
         <section>
-          <CarbonBars rA={rA} rB={rB} labelA={labelA} labelB={labelB}
-                      colorA={colorA} colorB={colorB} colorAd={colorAd} colorBd={colorBd} />
-          <SectionHead idx="06" title="Cumulative cost — Net Present Value" right="[ AUD · DISCOUNTED ]" />
-          <CumulativeCostChart rA={rA} rB={rB} PL={proj.PL} labelA={labelA} labelB={labelB} colorA={colorA} colorB={colorB} />
-          {controlsEnabled && <ControlsTable rA={rA} ctrl={ctrl} PL={proj.PL} />}
+          {rA && rB && (
+            <>
+              <SectionHead idx="05" title="Carbon breakdown" right="[ kgCO₂e · LIFECYCLE ]" />
+              <CarbonBars rA={rA} rB={rB} labelA={labelA} labelB={labelB}
+                          colorA={colorA} colorB={colorB} colorAd={colorAd} colorBd={colorBd} />
+              <SectionHead idx="06" title="Cumulative cost — Net Present Value" right="[ AUD · DISCOUNTED ]" />
+              <CumulativeCostChart rA={rA} rB={rB} PL={proj.PL} labelA={labelA} labelB={labelB} colorA={colorA} colorB={colorB} />
+            </>
+          )}
+          {controlsEnabled && rA && (
+            <>
+              <SectionHead idx="07" title="Controls — scenario breakdown" right="[ LOAN-FINANCED CAPITAL ]" />
+              <ControlsTable rA={rA} ctrl={ctrl} PL={proj.PL} />
+            </>
+          )}
           <footer style={{ padding: '24px 28px', display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'baseline', gap: 18 }}>
             <span style={{ fontFamily: T.MONO, fontSize: 9, color: T.MUTED, letterSpacing: '0.06em', lineHeight: 1.7 }}>
               TCO INCL. CAPITAL, ENERGY, REPLACEMENTS · GWP INCL. EMBODIED + OPERATIONAL · GRID DECARBONISATION APPLIED LINEARLY · NPV USES DISCOUNT RATE · ALL VALUES AUD · NOT FOR CERTIFICATION · SEE METHODOLOGY FOR ASSUMPTIONS

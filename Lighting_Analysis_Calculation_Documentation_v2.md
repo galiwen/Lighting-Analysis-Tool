@@ -17,6 +17,11 @@
 | 11 | Structural | Q_adj relabelled as Equivalent System Capacity | Clarifies that Q_adj represents total system capacity, not necessarily physical luminaire count |
 | 12 | Addition | GWP calculated for control scenarios | Controls reduce both operational emissions and embodied carbon via fewer replacements |
 | 13 | Bug fix | Section 4.3 replacement detection aligned with engine | Circular rounding logic could misfire with fractional lifetimes; engine's schedule-based approach is authoritative |
+| 14 | Bug fix | Section 3.4 verification table row PL=15 / L=7 corrected to 2 replacements | Old row contradicted the formula directly above it; with L=7 the second replacement at year 14 is required to reach PL=15 |
+| 15 | Structural | Control-loan term in TCO switched from nominal `TLP` to PV-discounted annuity `PV_loan` | Mixing nominal future payments with PV figures overstated controlled-scenario TCO; new formulation makes all cost terms apples-to-apples at the project discount rate `d`. `TLP` and `TIP` remain available for display |
+| 16 | Structural | NPV sign convention flipped — positive NPV now means Product A is preferable | Matches the PROPOSED-vs-BENCHMARK framing used by the verdict component and avoids a latent off-by-sign bug in downstream consumers |
+| 17 | Structural | NPV now includes the loan-PV differential when controls are enabled on both products | Without this term, NPV under-counted A's advantage when A's Q_adj × C_SI was lower than B's (i.e., when A's control financing was cheaper) |
+| 18 | Bug fix | Section 6 implementation note 8 aligned with Section 1.1 table | Note previously recommended defaulting discount rate to `i`; table says `0.05`. Engine + `PROJECT_DEFAULTS` follow the table |
 
 ---
 
@@ -246,7 +251,7 @@ function calculateReplacements(projectLife, luminaireLife) {
 | 15 | 10 | 1 | Replaced once at year 10 |
 | 15 | 15 | 0 | Lasts the full project, no replacement |
 | 15 | 5 | 2 | Replaced at year 5 and year 10 |
-| 15 | 7 | 1 | Replaced at year 7, second set lasts to year 14+ |
+| 15 | 7 | 2 | Replaced at year 7 and year 14 |
 | 10 | 10 | 0 | Exact boundary, no replacement needed |
 | 30 | 8 | 3 | At years 8, 16, 24 |
 
@@ -374,12 +379,14 @@ function calculatePVReplacements(C_initial, luminaireLife, numReplacements, i, d
 const TC_base = C_initial + PV_energy_base + PV_replace_base;
 
 // With control system (optional)
-// TLP = total loan payments = ACC_total + TIP (principal + interest)
-const TC_control = C_initial + TLP + PV_energy_control + PV_replace_control;
+// PV_loan = present value of the loan annuity discounted at d. See 3.9.
+const TC_control = C_initial + PV_loan + PV_energy_control + PV_replace_control;
 
 // With control + maintenance dimming (optional)
-const TC_control_maint = C_initial + TLP + PV_energy_control_maint + PV_replace_control_maint;
+const TC_control_maint = C_initial + PV_loan + PV_energy_control_maint + PV_replace_control_maint;
 ```
+
+All four terms are now in present-value space at the project discount rate `d`. `TLP` is still reported for display (nominal sum of loan payments) but is not summed into TCO.
 
 ### 3.9 Control System Financing (Optional)
 
@@ -402,9 +409,27 @@ function PMT(rate, nper, pv) {
 }
 
 const ALP = PMT(r, LT, -ACC_total);  // Annual Loan Payment
-const TLP = ALP * LT;                 // Total Loan Payments (principal + interest)
+const TLP = ALP * LT;                 // Total Loan Payments (principal + interest, nominal)
 const TIP = TLP - ACC_total;           // Total Interest Paid
 ```
+
+**Step 3: Present value of the loan annuity**
+
+```javascript
+function calculatePVLoan(ALP, LT, d) {
+    if (d === 0) return ALP * LT;
+    return ALP * (1 - Math.pow(1 + d, -LT)) / d;
+}
+
+const PV_loan = calculatePVLoan(ALP, LT, d);
+```
+
+Properties:
+- When `r = d`, `PV_loan = ACC_total` (financing is value-neutral).
+- When `r > d`, `PV_loan > ACC_total` (the interest premium is a real cost).
+- When `r < d`, `PV_loan < ACC_total` (financing creates value vs. paying cash).
+
+`PV_loan` is the term summed into `TC_control` and `TC_control_maint` in Step 4 above. `TLP` and `TIP` remain useful as display values (total nominal outflow, total interest paid).
 
 ### 3.10 Financial Metrics
 
@@ -415,31 +440,37 @@ const annual_savings = (E_base - E_control) * ER;
 const simple_payback = annual_savings > 0 ? ACC_total / annual_savings : Infinity;
 ```
 
-**NPV of switching from Product A (or benchmark) to Product B:**
+**NPV of choosing Product A over Product B:**
 
-The NPV answers: "What is the present value of choosing Product B over Product A?"
+The NPV answers: "What is the present value of choosing Product A over Product B?" — equivalently, `TC(B) − TC(A)` in present-value terms. The PROPOSED-vs-BENCHMARK framing means the verdict component (`VerdictRibbon`) treats positive NPV as "Product A wins."
 
 ```javascript
-function calculateComparisonNPV(productA, productB, d, PL) {
-    // Initial cost differential (negative if B costs more upfront)
-    const initialDiff = productA.C_initial - productB.C_initial;
+function calculateComparisonNPV(productA, productB, d, PL, ER, i) {
+    // Initial cost differential (positive if B costs more upfront — A's advantage)
+    const initialDiff = productB.C_initial - productA.C_initial;
 
     let npv = initialDiff;
 
     for (let y = 1; y <= PL; y++) {
-        // Annual energy cost savings of B over A
-        const energySavings = (productA.E_base - productB.E_base) * productA.ER
-            * Math.pow(1 + productA.i, y - 1);
+        // Annual energy cost savings of A over B (positive if A uses less)
+        const energySavings = (productB.E_base - productA.E_base) * ER
+            * Math.pow(1 + i, y - 1);
 
         npv += energySavings / Math.pow(1 + d, y);
     }
 
-    // PV of avoided replacements
-    npv += productA.PV_replace - productB.PV_replace;
+    // PV of avoided replacements (positive if A replaces less than B)
+    npv += productB.PV_replace - productA.PV_replace;
+
+    // When controls are enabled on both products, include the loan-PV differential.
+    // Caller passes promoted result objects whose .ctrlResults.PV_loan is defined.
+    if (productA.ctrlResults && productB.ctrlResults) {
+        npv += productB.ctrlResults.PV_loan - productA.ctrlResults.PV_loan;
+    }
 
     return npv;
-    // Positive NPV = Product B is financially better over PL
-    // Negative NPV = Product A is financially better over PL
+    // Positive NPV = Product A is financially better over PL
+    // Negative NPV = Product B is financially better over PL
 }
 ```
 
@@ -628,4 +659,4 @@ function checkCalculationWarnings(results) {
 5. **Precision:** 4 decimal places for intermediate calculations, 2 for display.
 6. **Control system toggle:** All control-related calculations (CSC, CACC, loan, payback) are skipped when the control module is disabled. The core comparison only requires base scenario calculations.
 7. **Chart data:** The year-by-year profiles in Sections 3.6, 3.8, and 4.3 provide the data structure for cumulative cost and emissions charts. Both products should appear on the same chart for direct visual comparison.
-8. **Discount rate default:** If the user does not set a discount rate, the UI should default to the general inflation rate (i) rather than the loan rate, and display a note explaining that this effectively shows costs in real (inflation-adjusted) terms.
+8. **Discount rate default:** Defaults to `0.05` (matching the Section 1.1 table and the shipped `PROJECT_DEFAULTS`). The validator warns when `d < i` because that amplifies future costs in PV terms. Setting `d = i` shows costs in real (inflation-adjusted) terms, which can be a useful sensitivity check but is not the default.

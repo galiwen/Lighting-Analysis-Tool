@@ -24,14 +24,14 @@ npm run preview    # serve the built bundle locally
 
 ## Tool overview
 
-The app is organised as a single page with a header, a hero region split between a left **tile column** and a right-hand **Comparison Results scoreboard**, and a stack of detailed result sections below.
+The app is organised as a single page with a header, a hero region of four input tiles, and a stack of detailed result sections below.
 
 **Header.** Title, version tagline, and three outlined modal buttons (`LinkBtn`):
 - **Info** — opens the Welcome modal (also opens automatically on every page load) walking through the page.
 - **Glossary** — term definitions (LMF, Q_adj, EFF, TCO, NPV, GWP, CSC, CACC, CRI, UGR, decarb factor, dimming).
 - **Methodology** — calculation summary (energy, lifetime, replacements, TCO, GWP, controls).
 
-A validation banner under the header surfaces input errors (red) or warnings (amber).
+A validation banner under the header surfaces input errors (red) or warnings (amber). The error layer comes from `validateInputs` in `src/calc/engine.js` (range checks on raw inputs); the warning layer adds post-calculation hits from `checkCalculationWarnings` — effective lifetime under one year, replacement count ≥ 3, grid-decarb horizon beyond project life, payback exceeding the loan term or the project life.
 
 **Inputs (four clickable tiles in the hero region).** Each `SectionTile` shows its section number + title, the active preset name (or `[ CUSTOM ]` if unmatched), and a 2–3 line mono summary of the current state. Clicking any tile opens a modal containing that section's preset chips, × CLEAR affordance, and stacked `NumberField` rows. The modal closes on **Esc**, backdrop click, or **✕ CLOSE**.
 
@@ -42,16 +42,15 @@ A validation banner under the header surfaces input errors (red) or warnings (am
 | **03 · Product A** | product-level | Downlight / Linear / Cylinder / Troffer / Post Top — high-spec L90 defaults (LMF 0.90, life 60,000 hr) | W, FL, Q, LMF, LH, GWP_CG, GWP_EOL, C_SI, **CRI**, **UGR** |
 | **04 · Product B** | product-level | Same chip set — L70-grade defaults (LMF 0.70, life 80,000 hr) | W, FL, Q, LMF, LH, GWP_CG, GWP_EOL, C_SI, **CRI**, **UGR** |
 
-When the **No Controls** chip is active in section 02, the four CTRL fields are dimmed (with a `[ DISABLED — SCENARIO SHORT-CIRCUITED ]` caption inside the modal), the controls scenario is skipped in the engine (`ctrlResults: null`), and section 09 is hidden. KPIs and charts then reflect the raw base case.
+When the **No Controls** chip is active in section 02, the four CTRL fields are dimmed (with a `[ DISABLED — SCENARIO SHORT-CIRCUITED ]` caption inside the modal), the controls scenario is skipped in the engine (`ctrlResults: null`), and section 07 is hidden. KPIs and charts then reflect the raw base case.
 
-**Comparison Results scoreboard.** The right-hand companion to the tile column. Two panes inside a single card:
+**Detailed results.** Three stacked sections sit below the hero, each with the same external `SectionHead` + `padding: 20px 28px` body + `1px solid T.INK` bottom rule rhythm:
 
-- *Left pane — metric buttons.* Six bordered rows in two groups separated by a thin rule. The economic group is **TCO**, **GWP**, **ENERGY**, **CAPITAL**; the photometric group is **CRI** and **UGR**. Each row shows the metric abbreviation, the winner letter (`A` / `B` / `—` for a tie) in the winner's accent color, and a ± % delta — except **CRI** (descriptor `HIGHEST`) and **UGR** (descriptor `LOWEST`). Hover and selected states swap the row background to `T.BG_PANEL` cream; the selected row also draws an inset 2px INK outline.
-- *Right pane — detail or verdict.* When no row is selected the pane shows the overall NPV-derived headline (`PRODUCT A WINS` / `PRODUCT B WINS` / `MIXED OUTCOME`) in the winner's accent, the TCO advantage over the project life, the signed NPV value, and a centred prompt `[ SELECT A METRIC ON THE LEFT FOR DETAIL ]` (plus `[ INCL. CONTROLS + DIM ]` when controls are on). Clicking a row replaces this block with the matching detail panel from `QuickDetailPanels.jsx`; clicking the same row again returns to the empty state.
+- **05 · Carbon breakdown.** Stacked carbon bars per product — embodied (darker shade) + operational (brighter shade of the same hue).
+- **06 · Cumulative cost — Net Present Value.** NPV-discounted cumulative cost line per product over the project life; x-axis ticks run `y1 … y{PL}` (no `y0`).
+- **07 · Controls — scenario breakdown** (when controls are enabled). A 4-up cost KPI strip (control system cost / annual energy saving / simple payback / total loan payments), a 3-up carbon-avoided KPI strip using the same bordered-card recipe, Total Cost of Ownership and Lifecycle carbon bar groups, and a residual scenario table.
 
-The title bar reads **Comparison Results** with a right-aligned `[ A = PROPOSED · B = BENCHMARK ]` legend. The scoreboard complements, rather than replaces, the detailed result sections below.
-
-**Detailed results.** Section 05 carbon breakdown bars (embodied = darker shade, operational = brighter shade of the same hue), section 06 NPV-discounted cumulative cost chart, and — when controls are enabled — section 09 controls scenario block (4-up KPI strip + 3-up carbon-avoided block + Total Cost of Ownership and Lifecycle carbon bar groups + residual scenario table).
+There is no single-figure verdict — when products split metrics, the cost chart and carbon bars surface the split honestly rather than collapsing it into prose.
 
 ## Design language
 
@@ -72,7 +71,7 @@ Sourced verbatim from `src/design/tokens.js`:
 |---|---|---|
 | `INK` | `#0A0A0A` | Primary text and structural rules |
 | `BG` | `#FAFAF7` | Page background |
-| `BG_PANEL` | `#F4F1E8` | Modal headers, hovered / selected scoreboard rows |
+| `BG_PANEL` | `#F4F1E8` | Modal headers, hover backgrounds |
 | `RULE` | `#1A1A1A` | Heavy horizontal divider variant |
 | `MUTED` | `#7A7872` | Secondary text, micro labels, axis text |
 | `SUBTLE` | `#E2DFD6` | Field borders, light gridlines, column rules |
@@ -94,10 +93,11 @@ Sourced verbatim from `src/design/tokens.js`:
 
 ### Layout grammar
 
-- Page structure: header (title + outlined Info / Glossary / Methodology buttons) → optional validation banner → hero region (left tile column + right Comparison Results scoreboard) → stacked result sections → footer disclaimer.
+- Page structure: header (title + outlined Info / Glossary / Methodology buttons) → optional validation banner → hero region (four input tiles) → stacked result sections (05 / 06 / 07) → footer disclaimer.
 - Max content width is 1320px, centered.
-- Sections are numbered: `01 · Project`, `02 · Controls`, `03 · Product A`, `04 · Product B`, `05 · Carbon breakdown`, `06 · Cumulative cost — Net Present Value`, `09 · Controls — scenario breakdown` (when controls are enabled). The number renders in `T.MUTED`, separated from the title by a bullet. Sections 07 / 08 are intentionally vacant — they correspond to the orphaned line-items / replacement-schedule components.
-- The hero tile column uses `display: flex, gap: 8, padding: 14` so each outlined tile sits as a discrete card. A `1px solid T.SUBTLE` right rule separates it from the scoreboard column. The whole hero is wrapped in a `1px solid T.INK` bottom rule.
+- Sections are numbered `01 · Project`, `02 · Controls`, `03 · Product A`, `04 · Product B`, `05 · Carbon breakdown`, `06 · Cumulative cost — Net Present Value`, `07 · Controls — scenario breakdown` (when controls are enabled). The number renders in `T.MUTED`, separated from the title by a bullet.
+- The hero region uses the `.hero-tiles` CSS grid in `src/styles.css` — 4 columns by default, collapsing to 2 columns at the 900 px breakpoint and 1 column at 560 px. Each outlined `SectionTile` sits as a discrete card; the whole hero is wrapped in a `1px solid T.INK` bottom rule.
+- Every result section below the hero follows the same vertical rhythm: external `SectionHead` bar (idx + title + uppercase `micro` caption) on top, `padding: 20px 28px` body, `1px solid T.INK` bottom rule. One repeated unit, one repeated boundary line.
 - Vertical column dividers elsewhere are `1px solid T.SUBTLE`. Horizontal section rules are `1px solid T.INK` (or `T.RULE` where a slightly lighter bar reads better).
 - Every input panel (rendered inside its tile's modal) follows the same vertical rhythm:
   1. Modal title bar (`01 · Project`, etc.) — supplied by the `Modal` atom; panels render in `chromeless` mode and omit their own inline header.
@@ -108,43 +108,49 @@ Sourced verbatim from `src/design/tokens.js`:
 
 ### Component vocabulary
 
-- **SectionTile** (`src/components/SectionTile.jsx`) — clickable summary card in the hero's tile column. Full `1px solid T.INK` outline over a transparent fill that swaps to `T.BG_PANEL` cream on hover (120ms transition). Two-row interior: index + title + accent label on top, divider rule (2px accent for Product tiles, 1px INK for Project/Controls), then a 2–3 line mono summary of the current state. Click opens the corresponding input modal.
+- **SectionTile** (`src/components/SectionTile.jsx`) — clickable summary card in the hero. Full `1px solid T.INK` outline over a transparent fill that swaps to `T.BG_PANEL` cream on hover (120ms transition). Two-row interior: index + title + accent label on top, divider rule (2px accent for Product tiles, 1px INK for Project / Controls), then a 2–3 line mono summary of the current state. Click opens the corresponding input modal.
 - **LinkBtn** (defined in `src/App.jsx`) — the outlined-button style shared by the three header buttons (Info / Glossary / Methodology). Same 1px INK border + transparent fill + hover swap to `T.BG_PANEL` as `SectionTile`. MONO 10px uppercase content.
-- **QuickScoreCard** (`src/results/QuickScoreCard.jsx`) — right-hand companion to the tile column. Title bar reads **Comparison Results** with an `[ A = PROPOSED · B = BENCHMARK ]` legend, then a two-pane body: a narrow left column of six bordered metric buttons (TCO / GWP / ENERGY / CAPITAL · CRI / UGR) showing winner letter + ± % (or HIGHEST / LOWEST for the photometric pair), and a right pane that renders either the matching detail panel from `QuickDetailPanels.jsx` or — in the empty state — the overall NPV-derived winner headline, TCO advantage, NPV value, and a prompt to pick a metric. Hover and selected rows fill with `T.BG_PANEL`; selected rows also draw an inset 2px INK outline.
-- **QuickDetailPanels** (`src/results/QuickDetailPanels.jsx`) — per-metric detail components (`TCODetail`, `GWPDetail`, `EnergyDetail`, `CapitalDetail`, `PhotoDetail`) that render into the scoreboard's right pane when a row is selected. Layout-agnostic — the parent pane supplies the padding.
 - **Preset chip** — small rectangular button (`3px × 8px` padding), MONO 9px uppercase with 0.06em spacing. Active: filled `T.INK` background with `T.BG` text. Inactive: transparent with `T.SUBTLE` border and `T.MUTED` text.
 - **× CLEAR** — borderless trailing button at `marginLeft: auto` in the chip row. MONO 9px uppercase. Color is `T.VERM` when something is dirty, `T.SUBTLE` when there is nothing to clear.
 - **Section micro-tag** — `micro` style, right-aligned in the panel header. Communicates scope (`SHARED` / `PROJECT-LEVEL` / `PRODUCT-LEVEL`) without competing with the title.
 - **NumberField (`NF`)** — micro label on top with an optional `Tip` "i" icon, mono 13px right-aligned input, optional unit suffix. States: error (`T.ERROR` border + icon + message), warn (`T.WARN_BD`), focus (border darkens to `T.INK`), hint below in `microSm`. Numeric value color follows the panel `accent` (BLUE / VERM / INK).
 - **Modal** (`src/components/atoms.jsx`) — fixed centered, default 620px width (configurable), 1px `T.INK` border, `T.BG_PANEL` header bar with title (SANS bold) + "✕ CLOSE" button (INK bg, BG text, MONO 10px), 0.65 dark backdrop. Closes on backdrop click, ✕ CLOSE, or the **Esc** key. Used by the Welcome, Glossary, Methodology, and four input dialogs.
-- **SectionHead** (`src/components/atoms.jsx`) — shared header for results sections: `idx · title` on the left, optional uppercase `micro` meta on the right, `borderBottom 1px T.INK`.
-- **Verdict copy** — the standalone full-width ribbon was retired; the verdict (winning product name in its accent + TCO advantage + signed NPV) now lives inside the `QuickScoreCard` right pane as the empty-state block. Hover / selected rows in the scoreboard reuse the same `T.BG_PANEL` cream affordance.
-- **Tip** — small circular "i" icon (13px, `T.SUBTLE` border) that reveals a dark tooltip on hover. Sits inline next to NF labels for unit/definition help.
+- **SectionHead** (`src/components/atoms.jsx`) — shared header bar for results sections: `idx · title` on the left, optional uppercase `micro` meta on the right, `borderBottom 1px T.INK`. Always rendered externally — immediately above a `padding: 20px 28px` body that itself closes with a `1px solid T.INK` bottom rule. Used by sections 05, 06, and 07.
+- **KPI card** — `padding: 10px 12px`, `1px solid T.SUBTLE` border, micro top label, SANS 18px 600-weight value, micro 8px subtitle. Used for the four cost metrics and three carbon-avoided deltas in section 07.
+- **Tooltip** (`src/components/Tooltip.jsx`) — absolutely-positioned mono panel anchored above the cursor. 1px INK border, BG fill, multi-line. Consumed by `CarbonBars`, `CumulativeCostChart`, and `ControlsTable`.
+- **Tip** (`src/components/atoms.jsx`) — small circular "i" icon (13px, `T.SUBTLE` border) that reveals a dark tooltip on hover. Sits inline next to NF labels for unit / definition help.
 
 ### Visual conventions worth preserving
 
 - **Editorial pairing.** Sans for content, mono for metadata and affordances. Avoid icon-driven UI; the type does the work.
-- **Thin rules over cards.** All structural separation is `1px solid` in `T.INK`, `T.RULE`, or `T.SUBTLE`. No box shadows except on the modal/tooltip layer.
+- **Thin rules over cards.** All structural separation is `1px solid` in `T.INK`, `T.RULE`, or `T.SUBTLE`. No box shadows except on the modal / tooltip layer.
+- **One section rhythm.** Hero + each of the three result sections share the same boundary line (`1px solid T.INK` bottom rule) and the result sections share the same internal recipe (external `SectionHead` + `padding 20px 28px` body). Don't fork into per-section variants.
 - **Outlined buttons share one hover pattern.** `SectionTile`, `LinkBtn`, and the three header buttons all use the same idiom: transparent fill, 1px INK border, hover swaps the background to `T.BG_PANEL` cream over a 120ms ease. Every clickable surface in the editorial chrome therefore reads the same way.
 - **Chip row → divider → fields** rhythm repeats across all four input panels for visual continuity.
 - **Charts** use `T.SUBTLE` gridlines, `T.MUTED` axis labels, and `T.INK` axis lines — hierarchy keeps data foregrounded. Line widths 2.5px with terminal end-of-curve circles.
-- **Carbon bars** are two-segment stacked: embodied (`_D`, darker) on the left, operational (bright) on the right, with a small swatch legend underneath. Section 09 (Controls scenarios) re-uses the idiom for its Lifecycle carbon bar group, and adds a sibling Total Cost of Ownership bar group with a single `colorA` fill — both bar groups share a tick row scaled by the same dynamic step logic as section 05.
-- **Validation banners** distinguish severity by color family: error in red (`T.ERROR`), warn in amber (`T.WARN_BD` on `T.WARN_BG`). Icon + short prefix + message.
+- **Carbon bars** are two-segment stacked: embodied (`_D`, darker) on the left, operational (bright) on the right, with a small swatch legend underneath. Section 07 (Controls scenarios) re-uses the idiom for its Lifecycle carbon bar group, and adds a sibling Total Cost of Ownership bar group with a single `colorA` fill — both bar groups share a tick row scaled by the same dynamic step logic as section 05.
+- **Canonical comparison surfaces.** Cost is compared via the section-06 cumulative-cost chart; carbon via the section-05 stacked bars. There is no single-figure verdict — when products split metrics, surfacing the split honestly is the point. `VerdictRibbon.jsx` and the older `QuickScoreCard` two-pane scoreboard remain on disk for a possible future print / export view but are not rendered.
+- **Validation banners** distinguish severity by color family: error in red (`T.ERROR`), warn in amber (`T.WARN_BD` on `T.WARN_BG`). Icon + short prefix + message. Warnings include both input-range hits (`validateInputs`) and post-calculation hits (`checkCalculationWarnings` — lifetime, replacement count, decarb horizon, payback).
 
 ## Project layout
 
 ```
 src/
 ├── App.jsx                Root component, state, calculation orchestration, tile +
-│                          modal wiring (openTile state), LinkBtn definition
+│                          modal wiring (openTile state), LinkBtn definition, the
+│                          three results-section SectionHeads (05 / 06 / 07).
 ├── main.jsx               React bootstrap
-├── styles.css             Font-face, body, scrollbar, input resets
+├── styles.css             Font-face, body, scrollbar, input resets, `.hero-tiles`
+│                          responsive grid (4 → 2 → 1 columns at 900 / 560 px)
 ├── calc/engine.js         Pure-JS calculation engine — lifetimes, replacements, energy,
-│                          PV cost, NPV, GWP, controls scenarios, validation
+│                          PV cost (incl. PV-discounted control-loan annuity), NPV,
+│                          GWP, controls scenarios, two-layer validation
+│                          (`validateInputs` + `checkCalculationWarnings`)
 ├── design/tokens.js       T color/font tokens shared by every component
 ├── components/
-│   ├── atoms.jsx          Modal (Esc-to-close), SectionHead
+│   ├── atoms.jsx          Modal (Esc-to-close), SectionHead, Tip, Toggle
 │   ├── SectionTile.jsx    Clickable hero tile — opens its corresponding input modal
+│   ├── Tooltip.jsx        Cursor-anchored mono tooltip shared by all three charts
 │   └── format.js          Number / currency / unit formatters
 ├── inputs/
 │   ├── ProjectPanel.jsx   01 · Project — supports `chromeless` prop for modal rendering
@@ -158,36 +164,45 @@ src/
 │   │                      BENCHMARKS, CTRL_PRESETS, GLOSSARY (incl. CRI / UGR)
 │   └── tips.js            Per-field tooltip copy (incl. CRI / UGR)
 ├── results/
-│   ├── QuickScoreCard.jsx Comparison Results scoreboard — two-pane card with six
-│   │                      metric buttons (TCO / GWP / ENERGY / CAPITAL · CRI / UGR)
-│   │                      and a detail pane. NPV-derived overall winner shown in
-│   │                      the empty state.
-│   ├── QuickDetailPanels.jsx  Per-metric detail panels (TCO / GWP / Energy / Capital /
-│   │                      Photo) rendered into the scoreboard's right pane.
-│   ├── CarbonBars.jsx     05 · Stacked carbon bars — embodied vs operational
-│   ├── CumulativeCostChart.jsx  06 · NPV cumulative cost over project life
-│   ├── ControlsTable.jsx  09 · Controls scenarios — 4-up KPI strip + 3-up carbon-
-│   │                      avoided block + Total Cost of Ownership bar group +
-│   │                      Lifecycle carbon bar group + residual scenario table
-│   ├── compare.js         Shared `pctDelta` + `decideWinner` helpers (consumed by
-│   │                      QuickScoreCard only)
-│   ├── VerdictRibbon.jsx  ⚠ orphaned — superseded by QuickScoreCard's right-pane
-│   │                      empty state, retained for a possible print/export view
-│   ├── KPIGrid.jsx        ⚠ orphaned — see VerdictRibbon note
-│   ├── LineItems.jsx      ⚠ orphaned — see VerdictRibbon note
-│   └── ReplacementSchedule.jsx  ⚠ orphaned — see VerdictRibbon note
+│   ├── CarbonBars.jsx              05 · Stacked carbon bars — embodied (darker) +
+│   │                                operational (brighter). Body only; section header
+│   │                                supplied externally by `App.jsx`.
+│   ├── CumulativeCostChart.jsx     06 · NPV-discounted cumulative cost over project
+│   │                                life. X-axis ticks `y1 … y{PL}`; crossover label
+│   │                                dashed; tooltip anchored to the cursor.
+│   ├── ControlsTable.jsx           07 · Controls scenarios — 4-up cost KPI strip +
+│   │                                3-up carbon-avoided KPI strip (same recipe) +
+│   │                                Total Cost of Ownership bar group + Lifecycle
+│   │                                carbon bar group + residual scenario table.
+│   ├── QuickScoreCard.jsx          ⚠ orphaned — superseded two-pane scoreboard
+│   ├── QuickDetailPanels.jsx       ⚠ orphaned — per-metric detail panels for the
+│   │                                retired scoreboard's right pane
+│   ├── VerdictRibbon.jsx           ⚠ orphaned — superseded single-figure verdict
+│   ├── KPIGrid.jsx                 ⚠ orphaned
+│   ├── LineItems.jsx               ⚠ orphaned
+│   ├── ReplacementSchedule.jsx     ⚠ orphaned
+│   └── compare.js                  ⚠ orphaned — `pctDelta` + `decideWinner`
+│                                    helpers consumed only by `QuickScoreCard`
 └── modals/
-    ├── WelcomeModal.jsx   "Info" — auto-opens on every visit, walks through tiles +
-    │                      modals + Comparison Results + results
+    ├── WelcomeModal.jsx   "Info" — auto-opens on every visit, walks the four input
+    │                      tiles and the three results sections
     ├── GlossaryModal.jsx  "Glossary" — term definitions (incl. CRI / UGR)
-    └── InfoModal.jsx      "Methodology" — calculation summary
+    └── InfoModal.jsx      "Methodology" — six concept rows aligned with engine math
 ```
+
+The orphan group remains on disk for a possible future print / export view but is not imported by `App.jsx`. If you ever re-introduce an NPV-consuming consumer, the engine's `aWins = npv >= 0` sign convention still holds: positive NPV = Product A preferable.
 
 ## Calculation methodology
 
 The calculation engine implements [`Lighting_Analysis_Calculation_Documentation_v2.md`](./Lighting_Analysis_Calculation_Documentation_v2.md) — the source of truth for all formulas, constants, and validation ranges. Edits to `src/calc/engine.js` should be cross-checked against that document.
 
 All monetary values are in AUD. Intermediate calculations use 4 decimal places; display values are rounded to 2.
+
+The current engine reflects the audit-pass corrections logged in changelog entries #14–#18 of the methodology doc:
+
+- `TC_control` includes `PV_loan` — the PV-discounted control-loan annuity at the project discount rate `d` — rather than the nominal `TLP = ALP × LT`. All TCO terms are now PV-consistent.
+- `calculateComparisonNPV` follows the convention **positive NPV = Product A preferable** over the project life.
+- `checkCalculationWarnings` runs after `runProductAnalysis` and feeds the validation banner alongside the input-range layer. Surfaced warnings: effective lifetime < 1 yr, replacement count ≥ 3, grid-decarb horizon beyond project life, controls payback exceeding the loan term or the project life.
 
 ## License
 

@@ -104,6 +104,13 @@ function PMT(rate, nper, pv) {
   return pv * rate * pvif / (pvif - 1);
 }
 
+// PV of an LT-year annuity of ALP discounted at d. Makes the loan term
+// apples-to-apples with the other PV cost streams in TC_control.
+function calculatePVLoan(ALP, LT, d) {
+  if (d === 0) return ALP * LT;
+  return ALP * (1 - Math.pow(1 + d, -LT)) / d;
+}
+
 function calculateControlFinancing(C_SI, Q_adj, CACC, r, LT) {
   const ACC_unit = C_SI * (CACC - 1);
   const ACC_total = Q_adj * ACC_unit;
@@ -114,14 +121,21 @@ function calculateControlFinancing(C_SI, Q_adj, CACC, r, LT) {
 }
 
 // ── 3.10 NPV comparison ────────────────────────────────────────────
+// Positive NPV = Product A is financially preferable over the project life
+// (matches the PROPOSED-vs-BENCHMARK framing used by VerdictRibbon).
+// Expects promoted result objects when controls are on (E_base and PV_replace
+// reflect the controls+dim scenario), so the loan PV diff is added explicitly.
 export function calculateComparisonNPV(A, B, d, PL, ER, i) {
-  const initialDiff = A.C_initial - B.C_initial;
+  const initialDiff = B.C_initial - A.C_initial;
   let npv = initialDiff;
   for (let y = 1; y <= PL; y++) {
-    const energySavings = (A.E_base - B.E_base) * ER * Math.pow(1 + i, y - 1);
+    const energySavings = (B.E_base - A.E_base) * ER * Math.pow(1 + i, y - 1);
     npv += energySavings / Math.pow(1 + d, y);
   }
-  npv += A.PV_replace - B.PV_replace;
+  npv += B.PV_replace - A.PV_replace;
+  if (A.ctrlResults && B.ctrlResults) {
+    npv += B.ctrlResults.PV_loan - A.ctrlResults.PV_loan;
+  }
   return npv;
 }
 
@@ -160,6 +174,7 @@ export function validateInputs(p, label) {
     if (p.GF_0 < 0 || p.GF_0 > 1.2) errors.push('Grid Carbon Factor must be 0–1.2 kg/kWh');
     if (p.OH < 1 || p.OH > 8760) errors.push('Operational hours must be 1–8760 hrs/yr');
     if (p.PL < 1 || p.PL > 50) errors.push('Project life must be 1–50 years');
+    if (p.GD < 0 || p.GD > 1) errors.push('Decarb factor must be 0–1');
     if (p.ER < 0.05 || p.ER > 1.99) warnings.push('Electricity rate outside typical range ($0.05–$1.99/kWh)');
     if (p.d !== undefined && p.i !== undefined && p.d < p.i) warnings.push('Discount rate is below inflation rate — amplifies future costs in PV terms');
   }
@@ -173,11 +188,15 @@ export function validateInputs(p, label) {
   return { errors, warnings };
 }
 
-export function checkCalculationWarnings(results, PL, GDT) {
+export function checkCalculationWarnings(results, PL, GDT, ctrlResults) {
   const warnings = [];
   if (results.L_base < 1) warnings.push('Luminaire lifetime is less than 1 year at these operational hours');
   if (results.N_replace >= 3) warnings.push(`Luminaires replaced ${results.N_replace}× — consider technology refresh assumptions`);
   if (GDT > PL) warnings.push('Grid decarbonisation target extends beyond the project life');
+  if (ctrlResults && Number.isFinite(ctrlResults.simple_payback)) {
+    if (ctrlResults.simple_payback > ctrlResults.LT) warnings.push('Control payback exceeds the loan term');
+    if (ctrlResults.simple_payback > PL) warnings.push('Control payback exceeds the project life');
+  }
   return warnings;
 }
 
@@ -206,14 +225,15 @@ export function runProductAnalysis(proj, prod, controlsEnabled, ctrl) {
 
   let ctrlResults = null;
   if (controlsEnabled && ctrl) {
-    const { ACC_total, ALP, TLP } = calculateControlFinancing(C_SI, Q_adj, ctrl.CACC, ctrl.r, ctrl.LT);
+    const { ACC_total, ALP, TLP, TIP } = calculateControlFinancing(C_SI, Q_adj, ctrl.CACC, ctrl.r, ctrl.LT);
+    const PV_loan = calculatePVLoan(ALP, ctrl.LT, d);
     const pvEnergyCtrl = calculatePVEnergyCosts(E_control, ER, i, d, PL);
     const pvReplaceCtrl = calculatePVReplacements(C_initial, L_control, N_replace_ctrl, i, d);
-    const TC_control = C_initial + TLP + pvEnergyCtrl.totalPV + pvReplaceCtrl.pvTotal;
+    const TC_control = C_initial + PV_loan + pvEnergyCtrl.totalPV + pvReplaceCtrl.pvTotal;
 
     const pvEnergyCtrlMaint = calculatePVEnergyCosts(E_control_maint, ER, i, d, PL);
     const pvReplaceCtrlMaint = calculatePVReplacements(C_initial, L_control_maint, N_replace_ctrl_maint, i, d);
-    const TC_control_maint = C_initial + TLP + pvEnergyCtrlMaint.totalPV + pvReplaceCtrlMaint.pvTotal;
+    const TC_control_maint = C_initial + PV_loan + pvEnergyCtrlMaint.totalPV + pvReplaceCtrlMaint.pvTotal;
 
     const annual_savings = (E_base - E_control) * ER;
     const simple_payback = annual_savings > 0 ? ACC_total / annual_savings : Infinity;
@@ -233,7 +253,8 @@ export function runProductAnalysis(proj, prod, controlsEnabled, ctrl) {
     );
 
     ctrlResults = {
-      ACC_total, ALP, TLP,
+      ACC_total, ALP, TLP, TIP, PV_loan,
+      LT: ctrl.LT,
       E_control, E_control_maint,
       L_control, L_control_maint,
       N_replace_ctrl, N_replace_ctrl_maint,
@@ -279,8 +300,5 @@ export function runProductAnalysis(proj, prod, controlsEnabled, ctrl) {
   };
 }
 
-// ── Benchmark defaults ─────────────────────────────────────────────
-export const BENCHMARK_DEFAULTS = {
-  W: 40, FL: 3600, LMF: 0.70, LH: 50000,
-  GWP_CG: 25, GWP_EOL: 2.5, C_SI: 250,
-};
+// Benchmark defaults live in src/inputs/defaults.js (BENCHMARKS array, plus
+// PRODUCT_B_DEFAULTS for the initial Product B state).

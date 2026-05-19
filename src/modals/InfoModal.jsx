@@ -2,12 +2,12 @@ import { T } from '../design/tokens.js';
 import { Modal } from '../components/atoms.jsx';
 
 const ROWS = [
-  ['Energy',             'Annual energy = wattage × quantity × hours / 1000 (kWh).'],
-  ['Effective lifetime', 'Adjusted for the Lumen Maintenance Factor (LMF). LMF 0.7 means lifetime is reported until output drops to 70% of initial — a longer, more permissive measure than L90 (0.9).'],
-  ['Replacements',       'Number of replacements = floor((PL × hr/yr) / lifetime). Replacement costs use Supply + Install per fixture, escalated at the inflation rate.'],
-  ['Cost (TCO)',         'Initial capital + present value of energy + present value of replacements. NPV uses (discount − inflation) as the real rate.'],
-  ['Carbon (GWP)',       'Embodied (cradle-to-gate × replacements) + End-of-life × replacements + Operational (annual energy × grid factor, decayed linearly by decarb % over decarb years).'],
-  ['Controls',           'Apply CSC to operational energy, CACC to capital cost. Loan-finance ACC over LT years at rate r. Effective lifetime extends because dimming + occupancy reduce burn hours.'],
+  ['Energy',             'Annual energy = wattage × Q_adj × hours ÷ 1000 (kWh). Q_adj = Q ÷ LMF — the equivalent system capacity that meets the design illuminance after lumen depreciation.'],
+  ['Effective lifetime', 'Rated life in years = LH ÷ OH. With controls and dimming, effective life extends because operating hours fall and drive level sits below 100% on average.'],
+  ['Replacements',       'Replacement count = ceil(PL ÷ L_yr) − 1, capped at 10. Each replacement re-incurs the supply + install cost, inflated to its year of occurrence at rate i then discounted to present value at rate d.'],
+  ['Cost (TCO)',         'Initial capital + present value of yearly energy + present value of replacements (+ present value of the control-system loan annuity, when controls are on). Yearly energy is grown to nominal at inflation i, then divided by (1 + d)^y to present value. Inflation and discount are applied separately — there is no real-rate collapse.'],
+  ['Carbon (GWP)',       'Embodied = (1 + replacements) × Q_adj × (GWP_CG + GWP_EOL) — each install cycle carries both manufacturing and end-of-life. Operational = sum over project years of annual_energy × yearly grid factor, where the grid factor decays linearly from GF_0 to GF_0 × (1 − GD) over GDT years.'],
+  ['Controls',           'Apply CSC to operational energy, CACC to per-fixture supply + install. ACC is loan-financed over LT years at rate r; the annual payment ALP is then PV-discounted at the project discount rate d, so all TCO terms are apples-to-apples. Effective lifetime extends because controls reduce burn hours and average drive level.'],
 ];
 
 export const InfoModal = ({ open, onClose }) => (
